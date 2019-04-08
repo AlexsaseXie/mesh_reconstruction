@@ -5,3 +5,7 @@
 *.npz
 ./data/models
 ./memo.txt
+
+data/
+data_preprocess/ids/
+data_preprocess/all.csv
