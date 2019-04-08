@@ -8,7 +8,7 @@
 import argparse, sys, os
 
 parser = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
-parser.add_argument('--views', type=int, default=30,
+parser.add_argument('--views', type=int, default=12,
                     help='number of views to be rendered')
 parser.add_argument('obj', type=str,
                     help='Path to the obj file to be rendered.')
@@ -149,8 +149,7 @@ cam_constraint.up_axis = 'UP_Y'
 b_empty = parent_obj_to_camera(cam)
 cam_constraint.target = b_empty
 
-model_identifier = os.path.split(os.path.split(args.obj)[0])[1]
-fp = os.path.join(args.output_folder, model_identifier, model_identifier)
+fp = os.path.join(args.output_folder, 'render')
 scene.render.image_settings.file_format = 'PNG'  # set output format to .png
 
 from math import radians
@@ -164,7 +163,22 @@ for output_node in [depth_file_output, normal_file_output, albedo_file_output]:
 for i in range(0, args.views):
     print("Rotation {}, {}".format((stepsize * i), radians(stepsize * i)))
 
-    scene.render.filepath = fp + '_r_{0:03d}'.format(int(i * stepsize))
+    scene.render.filepath = fp + '_upside_{0:03d}'.format(int(i * stepsize))
+    depth_file_output.file_slots[0].path = scene.render.filepath + "_depth.png"
+    normal_file_output.file_slots[0].path = scene.render.filepath + "_normal.png"
+    albedo_file_output.file_slots[0].path = scene.render.filepath + "_albedo.png"
+
+    bpy.ops.render.render(write_still=True)  # render still
+
+    b_empty.rotation_euler[2] += radians(stepsize)
+
+b_empty.rotation_euler[2] = 0
+cam.location = (0, 1, -0.6)
+
+for i in range(0, args.views):
+    print("Rotation {}, {}".format((stepsize * i), radians(stepsize * i)))
+
+    scene.render.filepath = fp + '_downside_{0:03d}'.format(int(i * stepsize))
     depth_file_output.file_slots[0].path = scene.render.filepath + "_depth.png"
     normal_file_output.file_slots[0].path = scene.render.filepath + "_normal.png"
     albedo_file_output.file_slots[0].path = scene.render.filepath + "_albedo.png"
