@@ -137,8 +137,8 @@ def parent_obj_to_camera(b_camera):
 
 
 scene = bpy.context.scene
-scene.render.resolution_x = 600
-scene.render.resolution_y = 600
+scene.render.resolution_x = 128
+scene.render.resolution_y = 128
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
 cam = scene.objects['Camera']
@@ -150,6 +150,13 @@ b_empty = parent_obj_to_camera(cam)
 cam_constraint.target = b_empty
 
 fp = os.path.join(args.output_folder, 'render')
+print('output folder:',fp)
+try:
+	os.mkdir(fp)
+except:
+	pass
+finally:
+	pass
 scene.render.image_settings.file_format = 'PNG'  # set output format to .png
 
 from math import radians
@@ -163,7 +170,7 @@ for output_node in [depth_file_output, normal_file_output, albedo_file_output]:
 for i in range(0, args.views):
     print("Rotation {}, {}".format((stepsize * i), radians(stepsize * i)))
 
-    scene.render.filepath = fp + '_upside_{0:03d}'.format(int(i * stepsize))
+    scene.render.filepath = fp + '/render_upside_{0:03d}'.format(int(i * stepsize))
     depth_file_output.file_slots[0].path = scene.render.filepath + "_depth.png"
     normal_file_output.file_slots[0].path = scene.render.filepath + "_normal.png"
     albedo_file_output.file_slots[0].path = scene.render.filepath + "_albedo.png"
@@ -178,7 +185,7 @@ cam.location = (0, 1, -0.6)
 for i in range(0, args.views):
     print("Rotation {}, {}".format((stepsize * i), radians(stepsize * i)))
 
-    scene.render.filepath = fp + '_downside_{0:03d}'.format(int(i * stepsize))
+    scene.render.filepath = fp + '/render_downside_{0:03d}'.format(int(i * stepsize))
     depth_file_output.file_slots[0].path = scene.render.filepath + "_depth.png"
     normal_file_output.file_slots[0].path = scene.render.filepath + "_normal.png"
     albedo_file_output.file_slots[0].path = scene.render.filepath + "_albedo.png"
