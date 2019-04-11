@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from skimage import io
+from skimage import transform
 
 NUM_VIEWS = 12
 DEGREE = 360 // NUM_VIEWS
@@ -46,11 +47,12 @@ for c in CLASSES:
             for side in ELEVATION:
                 for i in range(NUM_VIEWS):
                     azimuth = i * DEGREE
-                    png_root = os.path.join(model_root,'render','render_{s}_{0:03d}'.format(side, int(azimuth)))
+                    png_root = os.path.join(model_root,'render','render_{0}_{1:03d}.png'.format(side, int(azimuth)))
 
                     img = io.imread(png_root)
                     assert img.shape[2] == 4
-
+                    #img = transform.resize(img,(64,64))
+                    img = img.astype('uint8')
                     images.append(img.transpose(2,0,1))
             
             images = np.stack(images, axis = 0)
@@ -59,12 +61,14 @@ for c in CLASSES:
             dataset_images.append(images)
         
         dataset_images = np.stack(dataset_images , axis = 0)
-        dataset_images = ('%s_%s' % (c,t), dataset_images)
-        dataset_images = np.stack([dataset_images], axis = 0)
+        print(dataset_images.shape)
+        print(dataset_images.dtype)
+        #dataset_images = ('%s_%s' % (c,t), dataset_images)
+        #dataset_images = np.stack([dataset_images], axis = 0)
 
-        np.save(os.path.join(DATASET_ROOT,'%s_%s_render.npz'), dataset_images)
+        np.savez_compressed(os.path.join(DATASET_ROOT,'%s_%s_render.npz' % (c,t)), dataset_images)
+        print('%s,%s' % (c,t),'saved')
     
-
 
 
                        
