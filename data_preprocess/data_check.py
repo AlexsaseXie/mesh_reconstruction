@@ -26,7 +26,7 @@ TYPE = ['val','test','train']
 DATASET_ROOT = '../data/dataset/'
 SHAPENET_ROOT = '/home4/data/xieyunwei/ShapeNetCore.v2/'
 
-f = open(os.path.join(IDS_ROOT,'missing.txt'))
+f = open(os.path.join(IDS_ROOT,'missing.txt'),'w')
 
 for c in CLASSES:
     for t in TYPE:
@@ -70,7 +70,10 @@ for line in f_ids_all:
     
     model_root = os.path.join(SHAPENET_ROOT,class_id,model_id)
     obj_root = os.path.join(model_root,'models','model_normalized.obj')
-    pool.apply_async(render_obj,(model_root,obj_root))
+    if not os.path.exists(obj_root):
+        print('%s not exist' % obj_root)
+    else:
+        pool.apply_async(render_obj,(model_root,obj_root))
     counter += 1
 
 pool.close()
