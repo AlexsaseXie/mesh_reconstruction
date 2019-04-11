@@ -18,8 +18,6 @@ TYPE = ['val','test','train']
 DATASET_ROOT = '../data/dataset/'
 SHAPENET_ROOT = '/home4/data/xieyunwei/ShapeNetCore.v2/'
 
-f = open(os.path.join(IDS_ROOT,'missing.txt'),'w')
-
 for c in CLASSES:
     for t in TYPE:
         f_ids = open(os.path.join(IDS_ROOT,'%s_%s_ids.txt' % (c,t)))
