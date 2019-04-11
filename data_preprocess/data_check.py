@@ -1,5 +1,17 @@
 import os
+import subprocess
+import multiprocessing
+import time
 
+
+def render_obj(model_root,obj_root):
+	start_time = time.time()
+	print(model_root,' rendering start')
+	p = subprocess.Popen(['blender','--background','--python','render_blender.py','--','--output_folder',model_root,obj_root],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+	standard_out = p.stdout.readlines()
+
+	end_time = time.time()
+	print(model_root,' rendering ends, cost:', end_time - start_time)
 
 counter = 0
 
@@ -40,3 +52,29 @@ for c in CLASSES:
             
 print('misssing %d!' % counter)
 f.close()
+
+
+pool = multiprocessing.Pool(processes = 8)
+
+print('start rendering!')
+
+counter = 0
+
+f_ids = open(os.path.join(IDS_ROOT,'missing.txt'))
+f_ids_all = f_ids.readlines()
+for line in f_ids_all:
+    if line[-1] == '\n':
+        line = line[:-1]
+    class_id = c
+    model_id = line.split('/')[1]
+    
+    model_root = os.path.join(SHAPENET_ROOT,class_id,model_id)
+    obj_root = os.path.join(model_root,'models','model_normalized.obj')
+    pool.apply_async(render_obj,(model_root,obj_root))
+    counter += 1
+
+pool.close()
+pool.join()
+print('Quit!')
+e_time = time.time()
+print('In all ',counter,' models')
