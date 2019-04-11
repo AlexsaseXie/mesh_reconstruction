@@ -8,6 +8,7 @@ class ResBlock(chainer.Chain):
         self.dim_in = dim_in
         self.dim_mid = dim_mid
         self.dim_out = dim_out
+        self.stride = stride
         with self.init_scope():
             self.left_conv1 = cl.Convolution2D(dim_in, dim_mid, ksize=3, stride=stride, pad=1)
             self.left_bn1 = cl.BatchNormalization(dim_mid)
@@ -16,13 +17,12 @@ class ResBlock(chainer.Chain):
             self.left_bn2 = cl.BatchNormalization(dim_out)
 			
             if dim_in != dim_out or stride != 1:
-                self.shortcut_flag = True
                 self.shortcut_conv1 = cl.Convolution2D(dim_in, dim_out, ksize=1, stride=stride)
                 self.shortcut_bn = cl.BatchNormalization(dim_out)
 
     def __call__(self, x):
         out = self.left_bn2(self.left_conv2(cf.relu(self.left_bn1(self.left_conv1(x)))))
-        if self.shortcut_flag:
+        if self.dim_in != self.dim_out or self.stride != 1:
             out += self.shortcut_bn(self.shortcut_conv1(x))
         else:
             out += x
@@ -71,7 +71,7 @@ class ResNet18(chainer.Chain):
 
 if __name__ == '__main__':
     model = ResNet18()
-    print(model)
+    print(model.xp)
 
 
 
