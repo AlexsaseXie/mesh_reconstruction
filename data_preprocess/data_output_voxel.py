@@ -4,10 +4,9 @@ import sys
 sys.path.append('..')
 
 from mesh_reconstruction import voxelization
-
+import chainer
 import neural_renderer
-
-BATCH_SIZE = 8
+import time
 
 IDS_ROOT = 'ids/'
 CLASS_IDS_ALL = (
@@ -20,7 +19,9 @@ TYPE = ['val','test','train']
 DATASET_ROOT = '../data/dataset/'
 SHAPENET_ROOT = '/home4/data/xieyunwei/ShapeNetCore.v2/'
 
-
+start_time = time.time()
+print 'start calc voxel!'
+counter = 0
 for c in CLASSES:
     for t in TYPE:
         f_ids = open(os.path.join(IDS_ROOT,'%s_%s_ids.txt' % (c,t)))
@@ -40,20 +41,28 @@ for c in CLASSES:
             
             model_root = os.path.join(SHAPENET_ROOT,class_id,model_id)
             obj_root = os.path.join(model_root,'models','model_normalized.obj')
-            render_root = os.path.join(model_id,'render','render_upside_000.png')
+            render_root = os.path.join(model_root,'render','render_upside_000.png')
 
             if not os.path.exists(render_root):
                 continue
 
             vertices, faces = neural_renderer.load_obj(obj_root)
-            vertices = vertices[None, :,: ]
-            faces = faces[None, :, :]
-            faces_coordinates = neural_renderer.vertices_to_faces(vertices, faces)
-            voxel = voxelization.voxelize(faces_coordinates, 32, False)
-
-            print(type(voxel))
-            voxels.append(voxel)
+            #vertices = vertices.reshape((1,vertices.shape[0],vertices.shape[1]))
+            #faces = faces.reshape((1,faces.shape[0],faces.shape[1]))
+            vertices = chainer.cuda.to_gpu(vertices.astype('float32'), 0)
+            faces = chainer.cuda.to_gpu(faces, 0)
             
+            vertices = vertices[None,:,:]
+            faces = faces[None,:,:]
+            faces_coordinates = neural_renderer.vertices_to_faces(vertices, faces)
+            #print(faces.shape, type(faces))
+            voxel = voxelization.voxelize(faces_coordinates, 32, True)
+
+            #print(voxel.shape)
+            voxels.append(voxel.astype(bool).get()[0,:,:,:])
+            counter += 1 
+            if counter % 10 == 0:
+                print 'finish ', counter, 'models'
         
         voxels = np.stack(voxels , axis = 0)
         print(voxels.shape)
@@ -64,3 +73,7 @@ for c in CLASSES:
         
         break
     break
+
+end_time = time.time()
+print 'finished output voxel in', end_time - start_time , ' sec'
+print 'in all ', counter ,' models'
