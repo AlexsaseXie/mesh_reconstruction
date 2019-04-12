@@ -15,6 +15,9 @@ def render_obj(model_root,obj_root):
 
 counter = 0
 
+N_VIEWS = 12
+SIDE = ['upside','downside']
+
 IDS_ROOT = 'ids/'
 CLASS_IDS_ALL = (
     '02691156,02828884,02933112,02958343,03001627,03211117,03636649,' +
@@ -36,21 +39,29 @@ for c in CLASSES:
             if line[-1] == '\n':
                 line = line[:-1]
             
+
             if len(line) <= 5:
-                break
+                continue
 
             class_id = c
             model_id = line.split('/')[1]
             
             model_root = os.path.join(SHAPENET_ROOT,class_id,model_id)
-            render_root = os.path.join(model_root,'render','render_upside_000.png')
-			
+            
+            flag = True
+            
+            render_root = os.path.join(model_root,'render','render_{0}_{1:03d}.png'.format('downside', int(11 * 30)))
+                    	
             if not os.path.exists(render_root):
+                flag = False
+                        
+            if flag == False:
+                print('%d: %s is missing' % (counter, line))
                 f.write('%s\n' % line)
                 counter += 1
 
             
-print('misssing %d!' % counter)
+print('missing %d!' % counter)
 f.close()
 
 
@@ -60,12 +71,12 @@ print('start rendering!')
 
 counter = 0
 
-f_ids = open(os.path.join(IDS_ROOT,'missing.txt'))
+f_ids = open(os.path.join(IDS_ROOT,'missing.txt'), 'r')
 f_ids_all = f_ids.readlines()
 for line in f_ids_all:
     if line[-1] == '\n':
         line = line[:-1]
-    class_id = c
+    class_id = line.split('/')[0]
     model_id = line.split('/')[1]
     
     model_root = os.path.join(SHAPENET_ROOT,class_id,model_id)
