@@ -7,7 +7,10 @@ import loss_functions
 import renderer
 import voxelization
 
+import model_resnet
+import model_discriminator
 
+'''
 class Encoder(chainer.Chain):
     def __init__(self, dim_in=4, dim_out=512, dim1=64, dim2=1024):
         super(Encoder, self).__init__()
@@ -31,6 +34,7 @@ class Encoder(chainer.Chain):
         x = cf.relu(self.linear2(x))
         x = cf.relu(self.linear3(x))
         return x
+'''
 
 
 class Decoder(chainer.Chain):
@@ -99,7 +103,7 @@ class Model(chainer.Chain):
         self.vertices_predicted_a = None
         self.vertices_predicted_b = None
         with self.init_scope():
-            self.encoder = Encoder()
+            self.encoder = ResNet18(dim_out=512)
             self.decoder = Decoder(filename_obj)
             self.smoothness_loss_parameters = loss_functions.smoothness_loss_parameters(self.decoder.faces)
 
