@@ -7,8 +7,8 @@ import loss_functions
 import renderer
 import voxelization
 
-import model_resnet
-import model_discriminator
+from model_resnet import *
+from model_discriminator import *
 
 '''
 class Encoder(chainer.Chain):
@@ -108,7 +108,7 @@ class Model(chainer.Chain):
             self.smoothness_loss_parameters = loss_functions.smoothness_loss_parameters(self.decoder.faces)
 
             self.renderer = renderer.Renderer()
-            self.renderer.image_size = 64
+            self.renderer.image_size = 128
             self.renderer.viewing_angle = 15.
             self.renderer.anti_aliasing = True
 

@@ -12,7 +12,7 @@ import datasets
 import models
 import training
 
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 LEARNING_RATE = 1e-4
 LR_REDUCE_POINT = 0.95
 NUM_ITERATIONS = 1000000
