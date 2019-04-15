@@ -71,8 +71,6 @@ for c in CLASSES:
         np.savez_compressed(os.path.join(DATASET_ROOT,'%s_%s_voxel.npz' % (c,t)), voxels)
         print('%s,%s' % (c,t),'saved')
         
-        break
-    break
 
 end_time = time.time()
 print 'finished output voxel in', end_time - start_time , ' sec'
