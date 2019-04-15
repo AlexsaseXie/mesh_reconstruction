@@ -55,7 +55,7 @@ class ResNet18(chainer.Chain):
             self.layer3 = ResLayer(dim_in=128,dim_out=256,num_blocks=2,stride=2) #/2
             self.layer4 = ResLayer(dim_in=256,dim_out=512,num_blocks=2,stride=2) #/2
 
-            self.fc = cl.Linear((img_size // 32) * (img_size // 32) * 512, 2048)
+            self.fc = cl.Linear((img_size // 32) * (img_size // 32) * 512, dim_out)
             
 
     def __call__(self, x):
