@@ -134,6 +134,7 @@ class ShapeNet(object):
         return self.model_count
 
 
+import random
 
 class ShapeNet_NView(object):
     def __init__(self, directory=None, class_ids=None, set_name=None, n_views = 6):
@@ -172,8 +173,10 @@ class ShapeNet_NView(object):
         for i in range(batch_size):
             class_id = np.random.choice(self.class_ids)
             object_id = np.random.randint(0, self.num_data[class_id])
+
+            r_id = random.sample(range(0,24), self.n_views)
             for j in range(self.n_views):
-                viewpoint_id = np.random.randint(0, 24)
+                viewpoint_id = r_id[j]
                 data_id = (object_id + self.pos[class_id]) * 24 + viewpoint_id
                 data_ids[i,j] = data_id
                 viewpoint_ids[i,j] = viewpoint_id
@@ -207,11 +210,10 @@ class ShapeNet_NView(object):
             data_ids = np.zeros((batch_size, self.n_views), 'int32')
             viewpoint_ids = np.zeros((batch_size, self.n_views), 'int32')
             for i in range(batch_size):
-                class_id = np.random.choice(self.class_ids)
-                object_id = np.random.randint(0, self.num_data[class_id])
+                r_id = random.sample(range(0,24), self.n_views)
                 for j in range(self.n_views):
-                    viewpoint_id = np.random.randint(0, 24)
-                    data_id = (object_id + self.pos[class_id]) * 24 + viewpoint_id
+                    viewpoint_id = r_id[j]
+                    data_id = index[i] * 24 + viewpoint_id
                     data_ids[i,j] = data_id
                     viewpoint_ids[i,j] = viewpoint_id
 
