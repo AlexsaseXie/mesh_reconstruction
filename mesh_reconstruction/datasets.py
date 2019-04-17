@@ -31,6 +31,7 @@ class ShapeNet(object):
         images = np.ascontiguousarray(images)
         self.images = images
         self.voxels = np.ascontiguousarray(np.concatenate(voxels, axis=0))
+        self.model_count = images.shape[0] // 24
         del images
         del voxels
 
@@ -130,5 +131,5 @@ class ShapeNet(object):
             return images_a, images_b, viewpoints_a, viewpoints_b
 
     def __len__(self):
-        return self.images.shape[0] // 24
+        return self.model_count
 
