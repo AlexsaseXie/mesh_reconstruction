@@ -55,9 +55,10 @@ class ShapeNet(object):
         images_b = self.images[data_ids_b].astype('float32') / 255.
 
         distances = np.ones(batch_size, 'float32') * self.distance
-        elevations = np.ones(batch_size, 'float32') * self.elevation
-        viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations, -viewpoint_ids_a * 15)
-        viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations, -viewpoint_ids_b * 15)
+        elevations_a = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_a // 12) * 2 - 1)
+        elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_b // 12) * 2 - 1)
+        viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
+        viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
 
         return images_a, images_b, viewpoints_a, viewpoints_b
 
@@ -69,3 +70,65 @@ class ShapeNet(object):
             images = self.images[data_ids[i * batch_size:(i + 1) * batch_size]].astype('float32') / 255.
             voxels = self.voxels[data_ids[i * batch_size:(i + 1) * batch_size] / 24]
             yield images, voxels
+
+    def __getitem__(self, index):
+        if isinstance(index, list) or isinstance(index, np.ndarray):
+            batch_size = len(index)
+            data_ids_a = np.zeros(batch_size, 'int32')
+            data_ids_b = np.zeros(batch_size, 'int32')
+            viewpoint_ids_a = np.zeros(batch_size, 'int32')
+            viewpoint_ids_b = np.zeros(batch_size, 'int32')
+            for i in range(batch_size):
+                viewpoint_id_a = np.random.randint(0, 24)
+                viewpoint_id_b = np.random.randint(0, 24)
+                data_id_a = index[i] * 24 + viewpoint_id_a
+                data_id_b = index[i] * 24 + viewpoint_id_b
+                data_ids_a[i] = data_id_a
+                data_ids_b[i] = data_id_b
+                viewpoint_ids_a[i] = viewpoint_id_a
+                viewpoint_ids_b[i] = viewpoint_id_b
+
+            images_a = self.images[data_ids_a].astype('float32') / 255.
+            images_b = self.images[data_ids_b].astype('float32') / 255.
+
+            distances = np.ones(batch_size, 'float32') * self.distance
+            elevations_a = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_a // 12) * 2 - 1)
+            elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_b // 12) * 2 - 1)
+
+            viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
+            viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
+
+            return images_a, images_b, viewpoints_a, viewpoints_b
+
+        elif isinstance(index, slice):
+            raise NotImplementedError
+        else:
+            batch_size = 1 
+            data_ids_a = np.zeros(batch_size, 'int32')
+            data_ids_b = np.zeros(batch_size, 'int32')
+            viewpoint_ids_a = np.zeros(batch_size, 'int32')
+            viewpoint_ids_b = np.zeros(batch_size, 'int32')
+
+            viewpoint_id_a = np.random.randint(0, 24)
+            viewpoint_id_b = np.random.randint(0, 24)
+            data_id_a = index * 24 + viewpoint_id_a
+            data_id_b = index * 24 + viewpoint_id_b
+            data_ids_a[i] = data_id_a
+            data_ids_b[i] = data_id_b
+            viewpoint_ids_a[i] = viewpoint_id_a
+            viewpoint_ids_b[i] = viewpoint_id_b
+
+            images_a = self.images[data_ids_a].astype('float32') / 255.
+            images_b = self.images[data_ids_b].astype('float32') / 255.
+
+            distances = np.ones(batch_size, 'float32') * self.distance
+            elevations_a = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_id_a // 12) * 2 - 1)
+            elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_id_a // 12) * 2 - 1)
+            viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
+            viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
+
+            return images_a, images_b, viewpoints_a, viewpoints_b
+
+    def __len__(self):
+        return self.images.shape[0] // 24
+
