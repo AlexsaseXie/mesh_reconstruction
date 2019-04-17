@@ -55,7 +55,7 @@ def run():
     # load dataset
     dataset_train = datasets.ShapeNet(args.dataset_directory, args.class_ids.split(','), 'train')
     dataset_val = datasets.ShapeNet(args.dataset_directory, args.class_ids.split(','), 'val')
-    train_iter = training.MyIterator(dataset_train, args.batch_size)
+    train_iter = training.M_SerialIterator(dataset_train, args.batch_size)
 
     # setup model & optimizer
     model = models.Model(lambda_smoothness=args.lambda_smoothness)
@@ -65,6 +65,7 @@ def run():
 
     # setup trainer
     updater = chainer.training.StandardUpdater(train_iter, optimizer, converter=training.my_convertor)
+    #updater = chainer.training.StandardUpdater(train_iter, optimizer)
     trainer = chainer.training.Trainer(updater, stop_trigger=(args.num_iterations, 'iteration'), out=directory_output)
     trainer.extend(chainer.training.extensions.LogReport(trigger=(args.log_interval, 'iteration')))
     trainer.extend(chainer.training.extensions.PrintReport(

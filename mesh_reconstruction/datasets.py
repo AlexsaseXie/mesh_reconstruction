@@ -73,6 +73,7 @@ class ShapeNet(object):
             yield images, voxels
 
     def __getitem__(self, index):
+        #print index
         if isinstance(index, list) or isinstance(index, np.ndarray):
             batch_size = len(index)
             data_ids_a = np.zeros(batch_size, 'int32')
@@ -114,10 +115,10 @@ class ShapeNet(object):
             viewpoint_id_b = np.random.randint(0, 24)
             data_id_a = index * 24 + viewpoint_id_a
             data_id_b = index * 24 + viewpoint_id_b
-            data_ids_a[i] = data_id_a
-            data_ids_b[i] = data_id_b
-            viewpoint_ids_a[i] = viewpoint_id_a
-            viewpoint_ids_b[i] = viewpoint_id_b
+            data_ids_a[0] = data_id_a
+            data_ids_b[0] = data_id_b
+            viewpoint_ids_a[0] = viewpoint_id_a
+            viewpoint_ids_b[0] = viewpoint_id_b
 
             images_a = self.images[data_ids_a].astype('float32') / 255.
             images_b = self.images[data_ids_b].astype('float32') / 255.
@@ -127,8 +128,7 @@ class ShapeNet(object):
             elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_id_a // 12) * 2 - 1)
             viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
             viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
-
-            return images_a, images_b, viewpoints_a, viewpoints_b
+            return (images_a[0], images_b[0], viewpoints_a[0], viewpoints_b[0])
 
     def __len__(self):
         return self.model_count

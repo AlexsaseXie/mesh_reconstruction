@@ -4,8 +4,50 @@ import numpy as np
 
 def my_convertor(data, device=None):
     # data is tuple of numpy array
+    #print len(data), type(data)
+    #print len(data[0]), type(data[0])
     return tuple([chainer.cuda.to_gpu(d.astype('float32'), device) for d in data])
 
+class M_SerialIterator(chainer.iterators.SerialIterator):
+    def __next__(self):
+        if not self._repeat and self.epoch > 0:
+            raise StopIteration
+
+        self._previous_epoch_detail = self.epoch_detail
+
+        i = self.current_position
+        i_end = i + self.batch_size
+        N = len(self.dataset)
+
+        if self._order is None:
+            batch = self.dataset[i:i_end]
+        else:
+            batch = self.dataset[self._order[i:i_end]]
+
+        if i_end >= N:
+            if self._repeat:
+                rest = i_end - N
+                if self._order is not None:
+                    numpy.random.shuffle(self._order)
+                if rest > 0:
+                    if self._order is None:
+                        batch.extend(self.dataset[:rest])
+                    else:
+                        batch.extend([self.dataset[index]
+                                      for index in self._order[:rest]])
+                self.current_position = rest
+            else:
+                self.current_position = 0
+
+            self.epoch += 1
+            self.is_new_epoch = True
+        else:
+            self.is_new_epoch = False
+            self.current_position = i_end
+
+        return batch
+    
+    next = __next__
 
 class MyIterator(chainer.dataset.Iterator):
     # iterator for training
