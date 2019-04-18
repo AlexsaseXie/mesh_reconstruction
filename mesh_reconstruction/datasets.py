@@ -164,8 +164,17 @@ class ShapeNet_NView(object):
         self.images = images
         self.voxels = np.ascontiguousarray(np.concatenate(voxels, axis=0))
         self.model_count = images.shape[0] // 24
+
+        self.init_viewpoints()
         del images
         del voxels
+
+    def init_viewpoints(self):
+        distance = np.ones(24, 'float32') * self.distance
+        elevation = np.concatenate((np.ones(12, 'float32') * self.elevation, - np.ones(12, 'float') * self.elevation) , axis = 0)
+        azimuth = - np.arange(0, 24,'float32') * 30
+        self.viewpoints_pool = neural_renderer.get_points_from_angles(distance, elevation, azimuth)
+        
 
     def get_random_batch(self, batch_size):
         data_ids = np.zeros((batch_size, self.n_views), 'int32')
@@ -225,9 +234,10 @@ class ShapeNet_NView(object):
                 elevations_tmp = np.ones(self.n_views, 'float32') * self.elevation * ((viewpoint_ids[i,:] // 12) * 2 - 1)
                 viewpoints_tmp = neural_renderer.get_points_from_angles(distances, elevations_tmp, -viewpoint_ids[i,:] * 30)
                 viewpoints.append(viewpoints_tmp)
-
+        
             viewpoints = np.stack(viewpoints, axis=0)
-
+            print viewpoint_ids
+            print viewpoints
             return images, viewpoints
 
         elif isinstance(index, slice):
@@ -238,3 +248,14 @@ class ShapeNet_NView(object):
     def __len__(self):
         return self.model_count
 
+
+if __name__ == '__main__':
+    CLASS_IDS_ALL = (
+    '02691156,02828884,02933112,02958343,03001627,03211117,03636649,' +
+    '03691459,04090263,04256520,04379243,04401088,04530566')
+    DATASET_DIRECTORY = './data/dataset'
+    ds = ShapeNet_NView(DATASET_DIRECTORY, CLASS_IDS_ALL.split(','), 'train', n_views=3)
+    print ds.viewpoints_pool
+    ds[1:5]
+    ds[1:5]
+    ds[1:5]
