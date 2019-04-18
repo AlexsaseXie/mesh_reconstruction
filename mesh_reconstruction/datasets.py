@@ -32,8 +32,16 @@ class ShapeNet(object):
         self.images = images
         self.voxels = np.ascontiguousarray(np.concatenate(voxels, axis=0))
         self.model_count = images.shape[0] // 24
+        
+        self.init_viewpoints()
         del images
         del voxels
+    
+    def init_viewpoints(self):
+        distance = np.ones(24, 'float32') * self.distance
+        elevation = np.concatenate((np.ones(12, 'float32') * self.elevation, - np.ones(12, 'float') * self.elevation) , axis = 0)
+        azimuth = - np.arange(0, 24, dtype='int32') * 30
+        self.viewpoints_pool = neural_renderer.get_points_from_angles(distance, elevation, azimuth)
 
     def get_random_batch(self, batch_size):
         data_ids_a = np.zeros(batch_size, 'int32')
@@ -55,12 +63,14 @@ class ShapeNet(object):
         images_a = self.images[data_ids_a].astype('float32') / 255.
         images_b = self.images[data_ids_b].astype('float32') / 255.
 
-        distances = np.ones(batch_size, 'float32') * self.distance
-        elevations_a = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_a // 12) * 2 - 1)
-        elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_b // 12) * 2 - 1)
-        viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
-        viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
+        #distances = np.ones(batch_size, 'float32') * self.distance
+        #elevations_a = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_a // 12) * 2 - 1)
+        #elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_b // 12) * 2 - 1)
+        #viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
+        #viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
 
+        viewpoints_a = self.viewpoints_pool[viewpoint_ids_a]
+        viewpoints_b = self.viewpoints_pool[viewpoint_ids_b]
         return images_a, images_b, viewpoints_a, viewpoints_b
 
     def get_all_batches_for_evaluation(self, batch_size, class_id):
@@ -93,42 +103,23 @@ class ShapeNet(object):
             images_a = self.images[data_ids_a].astype('float32') / 255.
             images_b = self.images[data_ids_b].astype('float32') / 255.
 
-            distances = np.ones(batch_size, 'float32') * self.distance
-            elevations_a = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_a // 12) * 2 - 1)
-            elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_b // 12) * 2 - 1)
+            #distances = np.ones(batch_size, 'float32') * self.distance
+            #elevations_a = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_a // 12) * 2 - 1)
+            #elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_ids_b // 12) * 2 - 1)
 
-            viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
-            viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
-
+            #viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
+            #viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
+            
+            viewpoints_a = self.viewpoints_pool[viewpoint_ids_a]
+            viewpoints_b = self.viewpoints_pool[viewpoint_ids_b]
+            
             return images_a, images_b, viewpoints_a, viewpoints_b
 
         elif isinstance(index, slice):
-            raise NotImplementedError
+            current, stop, step = index.indices(len(self))
+            return self[range(current,stop,step)]
         else:
-            batch_size = 1 
-            data_ids_a = np.zeros(batch_size, 'int32')
-            data_ids_b = np.zeros(batch_size, 'int32')
-            viewpoint_ids_a = np.zeros(batch_size, 'int32')
-            viewpoint_ids_b = np.zeros(batch_size, 'int32')
-
-            viewpoint_id_a = np.random.randint(0, 24)
-            viewpoint_id_b = np.random.randint(0, 24)
-            data_id_a = index * 24 + viewpoint_id_a
-            data_id_b = index * 24 + viewpoint_id_b
-            data_ids_a[0] = data_id_a
-            data_ids_b[0] = data_id_b
-            viewpoint_ids_a[0] = viewpoint_id_a
-            viewpoint_ids_b[0] = viewpoint_id_b
-
-            images_a = self.images[data_ids_a].astype('float32') / 255.
-            images_b = self.images[data_ids_b].astype('float32') / 255.
-
-            distances = np.ones(batch_size, 'float32') * self.distance
-            elevations_a = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_id_a // 12) * 2 - 1)
-            elevations_b = np.ones(batch_size, 'float32') * self.elevation * ((viewpoint_id_a // 12) * 2 - 1)
-            viewpoints_a = neural_renderer.get_points_from_angles(distances, elevations_a, -viewpoint_ids_a * 30)
-            viewpoints_b = neural_renderer.get_points_from_angles(distances, elevations_b, -viewpoint_ids_b * 30)
-            return (images_a[0], images_b[0], viewpoints_a[0], viewpoints_b[0])
+            raise NotImplementedError
 
     def __len__(self):
         return self.model_count
@@ -140,8 +131,8 @@ class ShapeNet_NView(object):
     def __init__(self, directory=None, class_ids=None, set_name=None, n_views = 6):
         self.class_ids = class_ids
         self.set_name = set_name
-        self.elevation = 30.
-        self.distance = 2.732
+        self.elevation = 30.964
+        self.distance = 1.1662
         self.n_views = n_views
 
         images = []
@@ -172,7 +163,7 @@ class ShapeNet_NView(object):
     def init_viewpoints(self):
         distance = np.ones(24, 'float32') * self.distance
         elevation = np.concatenate((np.ones(12, 'float32') * self.elevation, - np.ones(12, 'float') * self.elevation) , axis = 0)
-        azimuth = - np.arange(0, 24,'float32') * 30
+        azimuth = - np.arange(0, 24, dtype='int32') * 30
         self.viewpoints_pool = neural_renderer.get_points_from_angles(distance, elevation, azimuth)
         
 
@@ -192,15 +183,15 @@ class ShapeNet_NView(object):
 
         images = self.images[data_ids].astype('float32') / 255.
 
-        viewpoints = []
-        distances = np.ones(self.n_views, 'float32') * self.distance
-        for i in range(batch_size):
-            elevations_tmp = np.ones(self.n_views, 'float32') * self.elevation * ((viewpoint_ids[i,:] // 12) * 2 - 1)
-            viewpoints_tmp = neural_renderer.get_points_from_angles(distances, elevations_tmp, -viewpoint_ids[i,:] * 30)
-            viewpoints.append(viewpoints_tmp)
+        #viewpoints = []
+        #distances = np.ones(self.n_views, 'float32') * self.distance
+        #for i in range(batch_size):
+        #    elevations_tmp = np.ones(self.n_views, 'float32') * self.elevation * ((viewpoint_ids[i,:] // 12) * 2 - 1)
+        #    viewpoints_tmp = neural_renderer.get_points_from_angles(distances, elevations_tmp, -viewpoint_ids[i,:] * 30)
+        #    viewpoints.append(viewpoints_tmp)
 
-        viewpoints = np.stack(viewpoints, axis=0)
-
+        #viewpoints = np.stack(viewpoints, axis=0)
+        viewpoints = self.viewpoints_pool[viewpoint_ids]
         return images, viewpoints
 
     def get_all_batches_for_evaluation(self, batch_size, class_id):
@@ -229,19 +220,19 @@ class ShapeNet_NView(object):
             images = self.images[data_ids].astype('float32') / 255.
 
             viewpoints = []
-            distances = np.ones(self.n_views, 'float32') * self.distance
-            for i in range(batch_size):
-                elevations_tmp = np.ones(self.n_views, 'float32') * self.elevation * ((viewpoint_ids[i,:] // 12) * 2 - 1)
-                viewpoints_tmp = neural_renderer.get_points_from_angles(distances, elevations_tmp, -viewpoint_ids[i,:] * 30)
-                viewpoints.append(viewpoints_tmp)
+            #distances = np.ones(self.n_views, 'float32') * self.distance
+            #for i in range(batch_size):
+            #    elevations_tmp = np.ones(self.n_views, 'float32') * self.elevation * ((viewpoint_ids[i,:] // 12) * 2 - 1)
+            #    viewpoints_tmp = neural_renderer.get_points_from_angles(distances, elevations_tmp, -viewpoint_ids[i,:] * 30)
+            #    viewpoints.append(viewpoints_tmp)
         
-            viewpoints = np.stack(viewpoints, axis=0)
-            print viewpoint_ids
-            print viewpoints
+            #viewpoints = np.stack(viewpoints, axis=0)
+            viewpoints = self.viewpoints_pool[viewpoint_ids]
             return images, viewpoints
 
         elif isinstance(index, slice):
-            raise NotImplementedError
+            current, stop, step = index.indices(len(self))
+            return self[range(current,stop,step)]
         else:
             raise NotImplementedError
 
@@ -251,11 +242,10 @@ class ShapeNet_NView(object):
 
 if __name__ == '__main__':
     CLASS_IDS_ALL = (
-    '02691156,02828884,02933112,02958343,03001627,03211117,03636649,' +
-    '03691459,04090263,04256520,04379243,04401088,04530566')
+    '03211117')
     DATASET_DIRECTORY = './data/dataset'
     ds = ShapeNet_NView(DATASET_DIRECTORY, CLASS_IDS_ALL.split(','), 'train', n_views=3)
+    #ds = ShapeNet(DATASET_DIRECTORY, CLASS_IDS_ALL.split(','), 'train')
     print ds.viewpoints_pool
-    ds[1:5]
-    ds[1:5]
+    ds[[1,2,3,4,5]]
     ds[1:5]
