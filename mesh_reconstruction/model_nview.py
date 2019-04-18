@@ -100,7 +100,7 @@ class Model(chainer.Chain):
     def __init__(self, filename_obj='./data/obj/sphere_642.obj', lambda_smoothness=0., n_views=2):
         super(Model, self).__init__()
         self.lambda_smoothness = lambda_smoothness
-        self.n_views = 2
+        self.n_views = n_views
         self.vertices_predicted_a = None
         self.vertices_predicted_b = None
         with self.init_scope():
@@ -118,24 +118,43 @@ class Model(chainer.Chain):
         self.smoothness_loss_parameters = [chainer.cuda.to_gpu(p) for p in self.smoothness_loss_parameters]
 
     def predict(self, images, viewpoints):
-        # [batch_size, n_views, 4, 128, 128]
+        # image : [batch_size, n_views, 4, 128, 128]
+        # viewpoints : [batch_size, n_views, 3]
         batch_size = images.shape[0]
 
-        images = self.xp.reshape((batch_size * images.shape[1], images.shape[2], images.shape[3], images.shape[4]), axis=0)
-        viewpoints = self.xp.concatenate((viewpoints_a, viewpoints_a, viewpoints_b, viewpoints_b), axis=0)
+        images = self.xp.reshape((batch_size * images.shape[1], images.shape[2], images.shape[3], images.shape[4]))
+        # viewpoints_t : viewpoints shift on the second axis
+        if self.n_views > 1:
+            viewpoints_t = self.xp.concatenate(viewpoints[:,1:,:], self.xp.expand_dims(viewpoints[:,0,:], axis=1),axis = 1)
+            viewpoints_t = self.xp.reshape(viewpoints_t, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
+            viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
+            viewpoints = self.xp.concatenate((viewpoints, viewpoints_t), axis=0)
+        else :
+            viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
         self.renderer.eye = viewpoints
 
-        vertices, faces = self.decoder(self.encoder(images))  # [a, b]
-        vertices_c = cf.concat((vertices, vertices), axis=0)  # [a, b, a, b]
-        faces_c = cf.concat((faces, faces), axis=0).data  # [a, b, a, b]
-        silhouettes = self.renderer.render_silhouettes(vertices_c, faces_c)  # [a/a, b/a, a/b, b/b]
-        silhouettes_a_a = silhouettes[0 * batch_size:1 * batch_size]
-        silhouettes_b_a = silhouettes[1 * batch_size:2 * batch_size]
-        silhouettes_a_b = silhouettes[2 * batch_size:3 * batch_size]
-        silhouettes_b_b = silhouettes[3 * batch_size:4 * batch_size]
-        vertices_a = vertices[:batch_size]
-        vertices_b = vertices[batch_size:]
-        return silhouettes_a_a, silhouettes_b_a, silhouettes_a_b, silhouettes_b_b, vertices_a, vertices_b
+        vertices, faces = self.decoder(self.encoder(images))  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...]
+        if self.n_views > 1:
+            vertices_c = cf.concat((vertices, vertices), axis=0)  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...] * 2
+            faces_c = cf.concat((faces, faces), axis=0).data  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...] * 2
+            silhouettes = self.renderer.render_silhouettes(vertices_c, faces_c)  # [1_view1 / 1_view1 ...] + [1_view1/ 1_view2, .. 1_viewn/1view1 ...]
+            silhouettes_a_a = silhouettes[0: batch_size * self.n_views]
+            silhouettes_a_a = cf.reshape(silhouettes_a_a,(batch_size, self.n_views, silhouettes_a_a.shape[1], silhouettes_a_a[2]))
+            silhouettes_a_nexta = silhouettes[batch_size * self.n_views:]
+            silhouettes_a_nexta = cf.reshape(silhouettes_a_nexta,(batch_size, self.n_views, silhouettes_a_nexta.shape[1], silhouettes_a_nexta[2]))
+            
+            vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
+            return silhouettes_a_a, silhouettes_a_nexta, vertices
+        else :
+            vertices_c = vertices
+            faces_c = faces.data
+            silhouettes = self.renderer.render_silhouettes(vertices_c, faces_c)
+            silhouettes_a_a = silhouettes[0: batch_size * self.n_views]
+            silhouettes_a_a = cf.reshape(silhouettes_a_a,(batch_size, self.n_views, silhouettes_a_a.shape[1], silhouettes_a_a[2]))
+            
+            vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
+            return silhouettes_a_a, None, vertices
+        
 
     def reconstruct(self, images):
         vertices, faces = self.decoder(self.encoder(images))
@@ -160,19 +179,32 @@ class Model(chainer.Chain):
 
     def __call__(self, images, viewpoints):
         # predict vertices and silhouettes
-        silhouettes_a_a, silhouettes_b_a, silhouettes_a_b, silhouettes_b_b, vertices_a, vertices_b = (
+        silhouettes_a_a, silhouettes_a_nexta, vertices = (
             self.predict(images, viewpoints))
 
+        if self.n_views == 1 :
+            loss_silhouettes = (loss_functions.iou_loss(images[:, 0, 3, :, :], silhouettes_a_a[:,0,:,:]))
+        else:
+            loss_silhouettes = 0
+            for i in range(self.n_views):
+                loss_silhouettes += (loss_functions.iou_loss(images[:, i, 3, :, :], silhouettes_a_a[:,i,:,:]))
+            for i in range(self.n_views):
+                loss_silhouettes += (loss_functions.iou_loss(images[:, (i + 1) % self.n_views, 3, :, :], silhouettes_a_nexta[:,i,:,:]))
+            loss_silhouettes = loss_silhouettes / (2 * self.n_views)
         # compute loss
-        loss_silhouettes = (
-                               loss_functions.iou_loss(images_a[:, 3, :, :], silhouettes_a_a) +
-                               loss_functions.iou_loss(images_a[:, 3, :, :], silhouettes_b_a) +
-                               loss_functions.iou_loss(images_b[:, 3, :, :], silhouettes_a_b) +
-                               loss_functions.iou_loss(images_b[:, 3, :, :], silhouettes_b_b)) / 4
+        #loss_silhouettes = (
+        #                       loss_functions.iou_loss(images_a[:, 3, :, :], silhouettes_a_a) +
+        #                       loss_functions.iou_loss(images_a[:, 3, :, :], silhouettes_b_a) +
+        #                       loss_functions.iou_loss(images_b[:, 3, :, :], silhouettes_a_b) +
+        #                       loss_functions.iou_loss(images_b[:, 3, :, :], silhouettes_b_b)) / 4
         if self.lambda_smoothness != 0:
-            loss_smoothness = (
-                                  loss_functions.smoothness_loss(vertices_a, self.smoothness_loss_parameters) +
-                                  loss_functions.smoothness_loss(vertices_b, self.smoothness_loss_parameters)) / 2
+            loss_smoothness = 0
+            for i in range(self.n_views):
+                loss_smoothness += loss_functions.smoothness_loss(vertices[:,i,:,:], self.smoothness_loss_parameters)
+            loss_smoothness = loss_smoothness / self.n_views
+            #loss_smoothness = (
+            #                      loss_functions.smoothness_loss(vertices_a, self.smoothness_loss_parameters) +
+            #                      loss_functions.smoothness_loss(vertices_b, self.smoothness_loss_parameters)) / 2
         else:
             loss_smoothness = 0
         loss = loss_silhouettes + self.lambda_smoothness * loss_smoothness

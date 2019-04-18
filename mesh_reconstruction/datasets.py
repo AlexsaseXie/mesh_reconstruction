@@ -9,8 +9,8 @@ class ShapeNet(object):
     def __init__(self, directory=None, class_ids=None, set_name=None):
         self.class_ids = class_ids
         self.set_name = set_name
-        self.elevation = 30.
-        self.distance = 2.732
+        self.elevation = 30.964
+        self.distance = 1.1662 # 1, 0.6   
 
         images = []
         voxels = []
