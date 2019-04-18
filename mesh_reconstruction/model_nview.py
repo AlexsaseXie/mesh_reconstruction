@@ -121,27 +121,28 @@ class Model(chainer.Chain):
         # image : [batch_size, n_views, 4, 128, 128]
         # viewpoints : [batch_size, n_views, 3]
         batch_size = images.shape[0]
-
-        images = self.xp.reshape((batch_size * images.shape[1], images.shape[2], images.shape[3], images.shape[4]))
+        
+        images = self.xp.reshape(images, (batch_size * images.shape[1], images.shape[2], images.shape[3], images.shape[4]))
         # viewpoints_t : viewpoints shift on the second axis
         if self.n_views > 1:
-            viewpoints_t = self.xp.concatenate(viewpoints[:,1:,:], self.xp.expand_dims(viewpoints[:,0,:], axis=1),axis = 1)
+            viewpoints_t = self.xp.concatenate((viewpoints[:,1:,:], self.xp.expand_dims(viewpoints[:,0,:], axis=1)),axis = 1)
             viewpoints_t = self.xp.reshape(viewpoints_t, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
             viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
             viewpoints = self.xp.concatenate((viewpoints, viewpoints_t), axis=0)
         else :
             viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
         self.renderer.eye = viewpoints
-
+        
         vertices, faces = self.decoder(self.encoder(images))  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...]
         if self.n_views > 1:
             vertices_c = cf.concat((vertices, vertices), axis=0)  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...] * 2
             faces_c = cf.concat((faces, faces), axis=0).data  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...] * 2
             silhouettes = self.renderer.render_silhouettes(vertices_c, faces_c)  # [1_view1 / 1_view1 ...] + [1_view1/ 1_view2, .. 1_viewn/1view1 ...]
             silhouettes_a_a = silhouettes[0: batch_size * self.n_views]
-            silhouettes_a_a = cf.reshape(silhouettes_a_a,(batch_size, self.n_views, silhouettes_a_a.shape[1], silhouettes_a_a[2]))
+            silhouettes_a_a = cf.reshape(silhouettes_a_a,(batch_size, self.n_views, silhouettes_a_a.shape[1], silhouettes_a_a.shape[2]))
+            
             silhouettes_a_nexta = silhouettes[batch_size * self.n_views:]
-            silhouettes_a_nexta = cf.reshape(silhouettes_a_nexta,(batch_size, self.n_views, silhouettes_a_nexta.shape[1], silhouettes_a_nexta[2]))
+            silhouettes_a_nexta = cf.reshape(silhouettes_a_nexta,(batch_size, self.n_views, silhouettes_a_nexta.shape[1], silhouettes_a_nexta.shape[2]))
             
             vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
             return silhouettes_a_a, silhouettes_a_nexta, vertices
