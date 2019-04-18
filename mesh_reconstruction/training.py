@@ -8,6 +8,14 @@ def my_convertor(data, device=None):
     #print len(data[0]), type(data[0])
     return tuple([chainer.cuda.to_gpu(d.astype('float32'), device) for d in data])
 
+def batch_extend(tuple1, tuple2):
+    L = len(tuple1)
+    t1_list = []
+    for i in range(L):
+        t1_list.append( np.concatenate((tuple1[i], tuple2[i]), axis=0) )
+    return tuple(t1_list)
+        
+
 class M_SerialIterator(chainer.iterators.SerialIterator):
     def __next__(self):
         if not self._repeat and self.epoch > 0:
@@ -28,13 +36,12 @@ class M_SerialIterator(chainer.iterators.SerialIterator):
             if self._repeat:
                 rest = i_end - N
                 if self._order is not None:
-                    numpy.random.shuffle(self._order)
+                    np.random.shuffle(self._order)
                 if rest > 0:
                     if self._order is None:
-                        batch.extend(self.dataset[:rest])
+                        batch = batch_extend(batch, self.dataset[:rest])
                     else:
-                        batch.extend([self.dataset[index]
-                                      for index in self._order[:rest]])
+                        batch = batch_extend(batch, self.dataset[self._order[:rest]])
                 self.current_position = rest
             else:
                 self.current_position = 0
