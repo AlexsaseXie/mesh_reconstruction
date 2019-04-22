@@ -44,6 +44,7 @@ def run():
     parser.add_argument('-li', '--log_interval', type=int, default=LOG_INTERVAL)
     parser.add_argument('-s', '--seed', type=int, default=RANDOM_SEED)
     parser.add_argument('-g', '--gpu', type=int, default=GPU)
+    parser.add_argument('-c','--con',type=bool, default=False)
     args = parser.parse_args()
     directory_output = os.path.join(args.model_directory, args.experiment_id)
 
@@ -61,6 +62,9 @@ def run():
     # setup model & optimizer
     model = model_nview.Model(lambda_smoothness=args.lambda_smoothness,n_views=3)
     model.to_gpu()
+    if args.con:
+        chainer.serializers.load_npz(os.path.join(directory_output, 'model.npz'), model)
+
     optimizer = neural_renderer.Adam(args.learning_rate)
     optimizer.setup(model)
 
