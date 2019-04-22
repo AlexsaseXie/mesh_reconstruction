@@ -97,9 +97,10 @@ class Decoder(chainer.Chain):
 
 
 class Model(chainer.Chain):
-    def __init__(self, filename_obj='./data/obj/sphere_642.obj', lambda_smoothness=0., n_views=2):
+    def __init__(self, filename_obj='./data/obj/sphere_642.obj', lambda_smoothness=0., lambda_std = 0.01, n_views=2):
         super(Model, self).__init__()
         self.lambda_smoothness = lambda_smoothness
+        self.lambda_std = lambda_std
         self.n_views = n_views
         self.vertices_predicted_a = None
         self.vertices_predicted_b = None
@@ -144,8 +145,17 @@ class Model(chainer.Chain):
             silhouettes_a_nexta = silhouettes[batch_size * self.n_views:]
             silhouettes_a_nexta = cf.reshape(silhouettes_a_nexta,(batch_size, self.n_views, silhouettes_a_nexta.shape[1], silhouettes_a_nexta.shape[2]))
             
+            faces = neural_renderer.vertices_to_faces(vertices, faces)
+            # faces : (batch_size * n_views) * n_faces * 3 * 3
+            f01 = self.xp.linalg.norm(faces[:,:,0,:] - faces[:,:,1,:], axis=2) # (batch_size * n_views) * n_faces 
+            f12 = self.xp.linalg.norm(faces[:,;,1,:] - faces[:,:,2,:], axis=2)
+            f20 = self.xp.linalg.norm(faces[:,;,2,:] - faces[:,:,0,:], axis=2)
+            
+            distances = self.xp.linalg.stack((f01,f12,f20), axis=2)
+            distances = cf.reshape(distances, (batch_size, self.n_views, distances.shape[1], vertices.shape[2]))
+
             vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
-            return silhouettes_a_a, silhouettes_a_nexta, vertices
+            return silhouettes_a_a, silhouettes_a_nexta, vertices, distances
         else :
             vertices_c = vertices
             faces_c = faces.data
@@ -153,8 +163,17 @@ class Model(chainer.Chain):
             silhouettes_a_a = silhouettes[0: batch_size * self.n_views]
             silhouettes_a_a = cf.reshape(silhouettes_a_a,(batch_size, self.n_views, silhouettes_a_a.shape[1], silhouettes_a_a[2]))
             
+            faces = neural_renderer.vertices_to_faces(vertices, faces)
+            # faces : (batch_size * n_views) * n_faces * 3 * 3
+            f01 = self.xp.linalg.norm(faces[:,:,0,:] - faces[:,:,1,:], axis=2) # (batch_size * n_views) * n_faces 
+            f12 = self.xp.linalg.norm(faces[:,;,1,:] - faces[:,:,2,:], axis=2)
+            f20 = self.xp.linalg.norm(faces[:,;,2,:] - faces[:,:,0,:], axis=2)
+            
+            distances = self.xp.linalg.stack((f01,f12,f20), axis=2)
+            distances = cf.reshape(distances, (batch_size, self.n_views, distances.shape[1], vertices.shape[2])
+
             vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
-            return silhouettes_a_a, None, vertices
+            return silhouettes_a_a, None, vertices, distances
         
 
     def reconstruct(self, images):
@@ -180,7 +199,7 @@ class Model(chainer.Chain):
 
     def __call__(self, images, viewpoints):
         # predict vertices and silhouettes
-        silhouettes_a_a, silhouettes_a_nexta, vertices = (
+        silhouettes_a_a, silhouettes_a_nexta, vertices, distances = (
             self.predict(images, viewpoints))
 
         if self.n_views == 1 :
@@ -208,12 +227,22 @@ class Model(chainer.Chain):
             #                      loss_functions.smoothness_loss(vertices_b, self.smoothness_loss_parameters)) / 2
         else:
             loss_smoothness = 0
-        loss = loss_silhouettes + self.lambda_smoothness * loss_smoothness
+
+        if self.lambda_std != 0:
+            loss_std = 0
+            for i in range(self.n_views):
+                loss_std += loss_functions.variance_loss(distances[:,i,:])
+            loss_std = loss_std / self.n_views
+        else:
+            loss_std = 0
+        
+        loss = loss_silhouettes + self.lambda_smoothness * loss_smoothness + self.lambda_std * loss_std
 
         # report
         loss_list = {
             'loss_silhouettes': loss_silhouettes,
             'loss_smoothness': loss_smoothness,
+            'loss_std': loss_std
             'loss': loss,
         }
         chainer.reporter.report(loss_list, self)

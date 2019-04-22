@@ -13,6 +13,11 @@ def iou(data1, data2):
 def iou_loss(data1, data2):
     return 1 - iou(data1, data2)
 
+def variance_loss(data):
+    avg = cf.mean(data,axis = 1)
+    avg = cf.broadcast_to(avg[:,None],data.shape)
+    return cf.mean_squared_error(data, avg)
+
 
 def smoothness_loss_parameters(faces):
     if hasattr(faces, 'get'):
