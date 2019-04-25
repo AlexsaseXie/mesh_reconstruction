@@ -63,6 +63,7 @@ def run():
     model = model_nview.Model(lambda_smoothness=args.lambda_smoothness,n_views=3)
     model.to_gpu()
     if args.con:
+        print 'loading pretrained model'
         chainer.serializers.load_npz(os.path.join(directory_output, 'model.npz'), model)
 
     optimizer = neural_renderer.Adam(args.learning_rate)

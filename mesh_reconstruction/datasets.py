@@ -40,7 +40,7 @@ class ShapeNet(object):
     def init_viewpoints(self):
         distance = np.ones(24, 'float32') * self.distance
         elevation = np.concatenate((np.ones(12, 'float32') * self.elevation, - np.ones(12, 'float') * self.elevation) , axis = 0)
-        azimuth = - np.arange(0, 24, dtype='int32') * 30
+        azimuth = np.arange(0, 24, dtype='int32') * 30
         self.viewpoints_pool = neural_renderer.get_points_from_angles(distance, elevation, azimuth)
 
     def get_random_batch(self, batch_size):
@@ -163,7 +163,7 @@ class ShapeNet_NView(object):
     def init_viewpoints(self):
         distance = np.ones(24, 'float32') * self.distance
         elevation = np.concatenate((np.ones(12, 'float32') * self.elevation, - np.ones(12, 'float') * self.elevation) , axis = 0)
-        azimuth = - np.arange(0, 24, dtype='int32') * 30
+        azimuth = np.arange(0, 24, dtype='int32') * 30
         self.viewpoints_pool = neural_renderer.get_points_from_angles(distance, elevation, azimuth)
         
 
