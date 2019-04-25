@@ -5,7 +5,7 @@ import os
 
 voxels = np.load(os.path.join('../data/dataset/02691156_val_voxels.npz')).items()[0][1]
 
-data = voxels[10].transpose((2,1,0))
+data = voxels[10].transpose((1,2,0))[::-1,:,:]
 
 print(data.shape)
 
