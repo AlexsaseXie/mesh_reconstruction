@@ -7,6 +7,13 @@ voxels = np.load(os.path.join('../data/dataset/02691156_val_voxels.npz')).items(
 
 data = voxels[10].transpose((1,2,0))[::-1,:,:]
 
+import binvox_rw
+
+v = binvox_rw.Voxels(data, dims=[32,32,32],translate=[0,0,0],scale=1, axis_order='xyz')
+
+with open('output.binvox','w',encoding='utf-8') as f:
+    v.write(f)
+
 print(data.shape)
 
 
