@@ -21,6 +21,8 @@ CLASS_IDS_ALL = (
     '02691156,02828884,02933112,02958343,03001627,03211117,03636649,' +
     '03691459,04090263,04256520,04379243,04401088,04530566')
 LAMBDA_SMOOTHNESS = 0
+LAMBDA_STD = 0.01
+N_VIEWS = 3
 
 LOG_INTERVAL = 10000
 RANDOM_SEED = 0
@@ -45,6 +47,8 @@ def run():
     parser.add_argument('-s', '--seed', type=int, default=RANDOM_SEED)
     parser.add_argument('-g', '--gpu', type=int, default=GPU)
     parser.add_argument('-c','--con',type=bool, default=False)
+    parser.add_argument('-lstd','--lambda_std',type=float, default=LAMBDA_STD)
+    parser.add_argument('-nviews','--n_views', type=int, default=N_VIEWS)
     args = parser.parse_args()
     directory_output = os.path.join(args.model_directory, args.experiment_id)
 
@@ -55,12 +59,12 @@ def run():
     chainer.cuda.get_device(args.gpu).use()
 
     # load dataset
-    dataset_train = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'train', n_views=3)
+    dataset_train = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'train', n_views=args.n_views)
     dataset_val = datasets.ShapeNet(args.dataset_directory, args.class_ids.split(','), 'val')
     train_iter = training.M_SerialIterator(dataset_train, args.batch_size)
 
     # setup model & optimizer
-    model = model_nview.Model(lambda_smoothness=args.lambda_smoothness,n_views=3)
+    model = model_nview.Model(lambda_smoothness=args.lambda_smoothness,lambda_std=args.lambda_std,n_views=args.n_views)
     model.to_gpu()
     if args.con:
         print 'loading pretrained model'

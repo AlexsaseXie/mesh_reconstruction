@@ -193,15 +193,11 @@ class Model(chainer.Chain):
         faces = neural_renderer.vertices_to_faces(vertices, faces).data
         faces = faces * 1. * (32. - 1) / 32. + 0.5  # normalization
         voxels_predicted = voxelization.voxelize(faces, 32, False)
-        voxels_predicted = voxels_predicted.transpose((0, 2, 1, 3))[:, :, :, ::-1]
+        #voxels_predicted = voxels_predicted.transpose((0, 2, 1, 3))[:, :, :, ::-1]
         iou = (voxels * voxels_predicted).sum((1, 2, 3)) / (0 < (voxels + voxels_predicted)).sum((1, 2, 3))
         return iou
 
-    def __call__(self, images, viewpoints):
-        # predict vertices and silhouettes
-        silhouettes_a_a, silhouettes_a_nexta, vertices, distances = (
-            self.predict(images, viewpoints))
-
+    def gen_loss(self, images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances):
         if self.n_views == 1 :
             loss_silhouettes = (loss_functions.iou_loss(images[:, 0, 3, :, :], silhouettes_a_a[:,0,:,:]))
         else:
@@ -246,5 +242,14 @@ class Model(chainer.Chain):
             'loss': loss,
         }
         chainer.reporter.report(loss_list, self)
+
+        return loss
+
+    def __call__(self, images, viewpoints):
+        # predict vertices and silhouettes
+        silhouettes_a_a, silhouettes_a_nexta, vertices, distances = (
+            self.predict(images, viewpoints))
+
+        loss = self.gen_loss(images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances)
 
         return loss
