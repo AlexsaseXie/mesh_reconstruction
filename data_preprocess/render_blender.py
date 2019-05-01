@@ -107,6 +107,45 @@ for object in bpy.context.scene.objects:
         bpy.context.object.modifiers["EdgeSplit"].split_angle = 1.32645
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="EdgeSplit")
 
+#normalize
+from mathutils import Vector, Matrix
+
+coor_max = [-1000000,-1000000,-1000000]
+coor_min = [1000000,1000000,1000000]
+
+for object in bpy.context.scene.objects:
+    if object.name in ['Camera', 'Lamp']:
+        continue
+
+    coords = object.bound_box[:]
+    rotated = zip(*coords[::-1])
+
+    for index, axis in enumerate(rotated):
+        if max(axis) > coor_max[index]:
+            coor_max[index] = max(axis)
+        if min(axis) < coor_min[index]:
+            coor_min[index] = min(axis)
+        
+distance = []
+push_axis = []
+for i in range(len(coor_max)):
+    distance.append(coor_max[i] - coor_min[i])
+    push_axis.append(- (coor_min[i] + distance[i] / 2) )
+
+scale_value = max(distance) / 2.0
+
+for object in bpy.context.scene.objects:
+    if object.name in ['Camera', 'Lamp']:
+        continue
+
+    translation = Matrix.Translation(push_axis)
+    scale = Matrix.Scale(1/scale_value, 4)
+
+    mesh = object.data
+    mesh.transform(scale * translation)
+    mesh.update()
+    
+
 # Make light just directional, disable shadows.
 lamp = bpy.data.lamps['Lamp']
 lamp.type = 'SUN'
