@@ -54,7 +54,7 @@ def run():
     chainer.cuda.get_device(args.gpu).use()
 
     # load dataset
-    dataset_test = datasets.ShapeNet(args.dataset_directory, args.class_ids.split(','), 'test')
+    dataset_test = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'test')
 
     # setup model & optimizer
     model = models.Model()

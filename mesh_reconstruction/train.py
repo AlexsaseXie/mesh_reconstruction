@@ -60,7 +60,7 @@ def run():
 
     # load dataset
     dataset_train = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'train', n_views=args.n_views)
-    dataset_val = datasets.ShapeNet(args.dataset_directory, args.class_ids.split(','), 'val')
+    dataset_val = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'val')
     train_iter = training.M_SerialIterator(dataset_train, args.batch_size)
 
     # setup model & optimizer
