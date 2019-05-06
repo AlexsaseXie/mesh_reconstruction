@@ -8,7 +8,7 @@
 import argparse, sys, os
 
 parser = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
-parser.add_argument('--views', type=int, default=12,
+parser.add_argument('--views', type=int, default=24,
                     help='number of views to be rendered')
 parser.add_argument('obj', type=str,
                     help='Path to the obj file to be rendered.')
@@ -152,16 +152,35 @@ lamp.type = 'SUN'
 lamp.shadow_method = 'NOSHADOW'
 # Possibly disable specular shading:
 lamp.use_specular = False
+lamp.energy = 0.4
+bpy.data.objects['Lamp'].location = (1, 0, 3)
 
 # Add another light source so stuff facing away from light is not completely dark
 bpy.ops.object.lamp_add(type='SUN')
 lamp2 = bpy.data.lamps['Sun']
 lamp2.shadow_method = 'NOSHADOW'
 lamp2.use_specular = False
-lamp2.energy = 0.015
+lamp2.energy = lamp.energy
 bpy.data.objects['Sun'].rotation_euler = bpy.data.objects['Lamp'].rotation_euler
 bpy.data.objects['Sun'].rotation_euler[0] += 180
 
+lamp3_data = bpy.data.lamps.new(name="Lamp3", type="SUN")
+lamp3_obj = bpy.data.objects.new(name="Lamp3", object_data=lamp3_data)
+bpy.context.scene.objects.link(lamp3_obj)
+lamp3_obj.location = (1,0,-3)
+lamp3_data.shadow_method = 'NOSHADOW'
+lamp3_data.use_specular = False
+lamp3_data.energy = 0.4
+
+
+lamp4_data = bpy.data.lamps.new(name="Lamp4", type="SUN")
+lamp4_obj = bpy.data.objects.new(name="Lamp4", object_data=lamp4_data)
+bpy.context.scene.objects.link(lamp4_obj)
+lamp4_obj.rotation_euler = lamp3_obj.rotation_euler
+lamp4_obj.rotation_euler[0] += 180
+lamp4_data.shadow_method = 'NOSHADOW'
+lamp4_data.use_specular = False
+lamp4_data.energy = lamp3_data.energy
 
 def parent_obj_to_camera(b_camera):
     origin = (0, 0, 0)
@@ -181,14 +200,14 @@ scene.render.resolution_y = 128
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
 cam = scene.objects['Camera']
-cam.location = (0, 1, 0.6)
+cam.location = (0, 2.3427, 1.4056)
 cam_constraint = cam.constraints.new(type='TRACK_TO')
 cam_constraint.track_axis = 'TRACK_NEGATIVE_Z'
 cam_constraint.up_axis = 'UP_Y'
 b_empty = parent_obj_to_camera(cam)
 cam_constraint.target = b_empty
 
-fp = os.path.join(args.output_folder, 'render')
+fp = os.path.join(args.output_folder, 'render_128_stable')
 print('output folder:',fp)
 try:
 	os.mkdir(fp)
@@ -218,8 +237,9 @@ for i in range(0, args.views):
 
     b_empty.rotation_euler[2] += radians(stepsize)
 
+
 b_empty.rotation_euler[2] = 0
-cam.location = (0, 1, -0.6)
+cam.location = (0, 2.3427, -1.4056)
 
 for i in range(0, args.views):
     print("Rotation {}, {}".format((stepsize * i), radians(stepsize * i)))
@@ -232,3 +252,4 @@ for i in range(0, args.views):
     bpy.ops.render.render(write_still=True)  # render still
 
     b_empty.rotation_euler[2] += radians(stepsize)
+
