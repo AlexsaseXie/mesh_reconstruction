@@ -37,6 +37,7 @@ def run():
     parser.add_argument('-eid', '--experiment_id', type=str)
     parser.add_argument('-d', '--model_directory', type=str, default=MODEL_DIRECTORY)
     parser.add_argument('-dd', '--dataset_directory', type=str, default=DATASET_DIRECTORY)
+    parser.add_argument('-dv', '--dataset_views', type=int, default=24)
     parser.add_argument('-cls', '--class_ids', type=str, default=CLASS_IDS_ALL)
     parser.add_argument('-bs', '--batch_size', type=int, default=BATCH_SIZE)
     parser.add_argument('-ls', '--lambda_smoothness', type=float, default=LAMBDA_SMOOTHNESS)
@@ -59,8 +60,8 @@ def run():
     chainer.cuda.get_device(args.gpu).use()
 
     # load dataset
-    dataset_train = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'train', n_views=args.n_views)
-    dataset_val = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'val')
+    dataset_train = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'train', n_views=args.n_views, total_views=args.dataset_views)
+    dataset_val = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'val', total_views=args.dataset_views)
     train_iter = training.M_SerialIterator(dataset_train, args.batch_size)
 
     # setup model & optimizer

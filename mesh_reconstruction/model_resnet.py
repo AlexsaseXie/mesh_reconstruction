@@ -42,7 +42,7 @@ class ResLayer(chainer.ChainList):
         return x
 
 class ResNet18(chainer.Chain):
-    def __init__(self, dim_in = 4, img_size=128, dim_out=2048):
+    def __init__(self, dim_in = 4, img_size=64, dim_out=512):
         super(ResNet18, self).__init__()
         self.dim_in = dim_in
         with self.init_scope():
