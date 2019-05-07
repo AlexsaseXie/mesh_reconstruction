@@ -9,7 +9,6 @@ import neural_renderer
 import numpy as np
 
 import datasets
-import models
 import model_nview
 import training
 

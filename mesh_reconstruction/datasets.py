@@ -11,7 +11,7 @@ class ShapeNet_NView(object):
         self.class_ids = class_ids
         self.set_name = set_name
         self.elevation = 30.964
-        self.distance = 1.1662
+        self.distance = 2.732
         self.n_views = n_views
         self.total_views = total_views
 
@@ -26,17 +26,17 @@ class ShapeNet_NView(object):
         loop.set_description('Loading dataset')
         for class_id in loop:
             images.append(np.load(
-                os.path.join(directory, '%s_%s_render.npz' % (class_id, set_name))).items()[0][1])
+                os.path.join(directory, '%s_%s_render_64_stable_top.npz' % (class_id, set_name))).items()[0][1])
             voxels.append(np.load(
                 os.path.join(directory, '%s_%s_voxel.npz' % (class_id, set_name))).items()[0][1])
             self.num_data[class_id] = images[-1].shape[0]
             self.pos[class_id] = count
             count += self.num_data[class_id]
-        images = np.concatenate(images, axis=0).reshape((-1, 4, 128, 128))
+        images = np.concatenate(images, axis=0).reshape((-1, images[0].shape[2], images[0].shape[3], images[0].shape[4]))
         images = np.ascontiguousarray(images)
         self.images = images
         self.voxels = np.ascontiguousarray(np.concatenate(voxels, axis=0))
-        self.model_count = images.shape[0] // 24
+        self.model_count = images.shape[0] // self.total_views
 
         self.init_viewpoints()
         del images
@@ -132,7 +132,7 @@ class ShapeNet_NView_Gan(object):
         self.class_ids = class_ids
         self.set_name = set_name
         self.elevation = 30.964
-        self.distance = 1.1662
+        self.distance = 2.732
         self.n_views = n_views
         self.total_views = total_views
 
@@ -153,11 +153,11 @@ class ShapeNet_NView_Gan(object):
             self.num_data[class_id] = images[-1].shape[0]
             self.pos[class_id] = count
             count += self.num_data[class_id]
-        images = np.concatenate(images, axis=0).reshape((-1, 4, 128, 128))
+        images = np.concatenate(images, axis=0).reshape((-1, images[0].shape[2], images[0].shape[3], images[0].shape[4]))
         images = np.ascontiguousarray(images)
         self.images = images
         self.voxels = np.ascontiguousarray(np.concatenate(voxels, axis=0))
-        self.model_count = images.shape[0] // 24
+        self.model_count = images.shape[0] // self.total_views
 
         self.init_viewpoints()
         del images
