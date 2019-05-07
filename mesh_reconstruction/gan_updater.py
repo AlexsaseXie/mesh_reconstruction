@@ -13,9 +13,9 @@ class Updater(chainer.training.StandardUpdater):
         self._iter = 0
 
         params = kwargs.pop('params')
-        self._img_size = params['img_size']
-        self._img_chan = params['img_chan']
-        self._latent_len = params['latent_len']
+        #self._img_size = params['img_size']
+        #self._img_chan = params['img_chan']
+        #self._latent_len = params['latent_len']
         self._dis_iter = params['dis_iter']
         self._batch_size = params['batch_size']
         self._lambda_gp = params['lambda_gp']

@@ -96,11 +96,12 @@ def run():
         device=args.gpu,
         params={
             'batch_size': args.batch_size,
-            'img_size': args.image_size,
-            'img_chan': args.image_channels,
-            'latent_len': args.latent_len,
+            #'img_size': 64,
+            #'img_chan': 4,
+            #'latent_len': args.latent_len,
             'dis_iter': 5,
-            'lambda_gp': args.lambda_gp
+            'lambda_gp': args.lambda_gp,
+            'n_views': args.n_views
         }, 
         converter=training.my_convertor
     )
