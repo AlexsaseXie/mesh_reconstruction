@@ -50,7 +50,8 @@ class Updater(chainer.training.StandardUpdater):
             loss_dis = w1
 
             # gp
-            eta = np.random.rand()
+            xp = chainer.cuda.get_array_module(d_real)
+            eta = xp.random.uniform(0., 1., (self._batch_size, 1, 1, 1))
             c = (d_real * eta + (1.0 - eta) * d_fake).astype('f')
             #y = self.dis(Variable(c))
 
