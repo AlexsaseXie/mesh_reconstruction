@@ -99,7 +99,7 @@ def run():
             #'img_size': 64,
             #'img_chan': 4,
             #'latent_len': args.latent_len,
-            'dis_iter': 5,
+            'dis_iter': 3,
             'lambda_gp': args.lambda_gp,
             'n_views': args.n_views
         }, 

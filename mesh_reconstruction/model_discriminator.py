@@ -27,7 +27,7 @@ class Discriminator(chainer.Chain):
         img_h = cf.leaky_relu(self.bn1(self.conv1(img)))
         h = cf.broadcast_to(h[:, :, None, None], (img_h.shape[0], h.shape[1] , img_h.shape[2], img_h.shape[3]))
 
-        h = cf.concat(img_h, h)
+        h = cf.concat((img_h, h), axis=1)
         h = cf.leaky_relu(self.bn2(self.conv2(h)))
         h = cf.leaky_relu(self.bn3(self.conv3(h)))
         h = cf.leaky_relu(self.bn4(self.conv4(h)))

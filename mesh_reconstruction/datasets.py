@@ -147,7 +147,7 @@ class ShapeNet_NView_Gan(object):
         loop.set_description('Loading dataset')
         for class_id in loop:
             images.append(np.load(
-                os.path.join(directory, '%s_%s_render.npz' % (class_id, set_name))).items()[0][1])
+                os.path.join(directory, '%s_%s_render_64_stable_top.npz' % (class_id, set_name))).items()[0][1])
             voxels.append(np.load(
                 os.path.join(directory, '%s_%s_voxel.npz' % (class_id, set_name))).items()[0][1])
             self.num_data[class_id] = images[-1].shape[0]

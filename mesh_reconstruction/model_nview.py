@@ -157,11 +157,11 @@ class Model(chainer.Chain):
             vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
             return silhouettes_a_a, silhouettes_a_nexta, vertices, distances
         else :
-            vertices_c = vertices
-            faces_c = faces.data
-            silhouettes = self.renderer.render_silhouettes(vertices_c, faces_c)
+            #vertices_c = vertices
+            #faces_c = faces.data
+            silhouettes = self.renderer.render_silhouettes(vertices, faces)
             silhouettes_a_a = silhouettes[0: batch_size * self.n_views]
-            silhouettes_a_a = cf.reshape(silhouettes_a_a,(batch_size, self.n_views, silhouettes_a_a.shape[1], silhouettes_a_a[2]))
+            silhouettes_a_a = cf.reshape(silhouettes_a_a,(batch_size, self.n_views, silhouettes_a_a.shape[1], silhouettes_a_a.shape[2]))
             
             faces = neural_renderer.vertices_to_faces(vertices, faces)
             # faces : (batch_size * n_views) * n_faces * 3 * 3

@@ -4,9 +4,6 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import cuda, optimizers, serializers, Variable
 
-def loss_l2(h, t):
-    return F.sum((h-t)**2) / np.prod(h.data.shape)
-
 class Updater(chainer.training.StandardUpdater):
     def __init__(self, *args, **kwargs):
         self.gen, self.dis = kwargs.pop('models')
@@ -31,19 +28,18 @@ class Updater(chainer.training.StandardUpdater):
         batch = self.get_iterator('main').next()
         device = self.device
         images, viewpoints, real_images, real_viewpoints = self.converter(batch, device)
-
+        
+        f_real_viewpoints = real_viewpoints.reshape((real_viewpoints.shape[0], 1, real_viewpoints.shape[1]))
         #loss_gen = self.gen.gen_loss(images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances)
         self.gen.n_views = 1
         
         for i in range(self._dis_iter):
+            d_fake, _, _, _ = self.gen.predict(images[:,(i % self._n_views):(i % self._n_views + 1), :, :, :], f_real_viewpoints)
 
-            d_fake, _, _, _ = (
-                self.gen.predict(images[:,i % self._n_views, :, :, :], real_viewpoints))
+            d_real = real_images[:,3:4,:,:]
 
-            d_real = real_images
-
-            y_fake = self.dis(Variable(d_fake), real_viewpoints)
-            y_real = self.dis(Variable(d_real), real_viewpoints)
+            y_fake = self.dis(d_fake, real_viewpoints)
+            y_real = self.dis(d_real, real_viewpoints)
 
             w1 = F.average(y_fake-y_real)
 
@@ -52,21 +48,27 @@ class Updater(chainer.training.StandardUpdater):
             # gp
             xp = chainer.cuda.get_array_module(d_real)
             eta = xp.random.uniform(0., 1., (self._batch_size, 1, 1, 1))
-            c = (d_real * eta + (1.0 - eta) * d_fake).astype('f')
+            c = (d_real * eta + (1.0 - eta) * d_fake)
             #y = self.dis(Variable(c))
 
             #g = xp.ones_like(y.data)
             #grad_c = self.dis.backward(Variable(g))
-            grad_c,_ = chainer.grad([self.dis(c, real_viewpoints)], [c],
-                                 enable_double_backprop=True)
-            grad_c_l2 = F.sqrt(F.sum(grad_c**2, axis=(1, 2, 3)))
+            
+            v_real_viewpoints = Variable(real_viewpoints)
+            mid_c = self.dis(c, v_real_viewpoints)
+            grad_c,_ = chainer.grad([mid_c], [c, v_real_viewpoints],
+                                 enable_double_backprop=True, loss_scale=0.2)
+            #print(grad_c.shape, grad_c.data[0,0,0,0])
+            grad_c = F.sqrt(F.batch_l2_norm_squared(grad_c))
 
-            loss_gp = loss_l2(grad_c_l2, 1.0)
+            loss_gp = F.mean_squared_error(grad_c, xp.ones_like(grad_c.data))
+            #print loss_dis
+            #print self._lambda_gp * loss_gp
 
             loss_dis += self._lambda_gp * loss_gp
 
             # update
-            opt_d.zero_grads()
+            self.dis.cleargrads()
             loss_dis.backward()
             opt_d.update()
 
@@ -78,14 +80,14 @@ class Updater(chainer.training.StandardUpdater):
         # update gan
         for i in range(self._n_views):
             d_fake, _, _, _ = (
-                    self.gen.predict(images[:, i, :, :, :], real_viewpoints))
+                    self.gen.predict(images[:, i: i+1, :, :, :], f_real_viewpoints))
 
             y_fake = self.dis(d_fake, real_viewpoints)
             loss_gen -= F.average(y_fake)
 
         chainer.report({'loss_ad': loss_gen}, self.gen)
 
-        opt_g.zero_grads()
+        self.gen.cleargrads()
         loss_gen.backward()
         opt_g.update()
 
@@ -100,7 +102,7 @@ class Updater(chainer.training.StandardUpdater):
 
         chainer.report({'loss_supervised': loss_gen}, self.gen)
 
-        opt_g.zero_grads()
+        self.gen.cleargrads()
         loss_gen.backward()
         opt_g.update()
 
