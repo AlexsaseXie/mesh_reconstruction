@@ -53,10 +53,12 @@ class Updater(chainer.training.StandardUpdater):
             # gp
             eta = np.random.rand()
             c = (d_real * eta + (1.0 - eta) * d_fake).astype('f')
-            y = self.dis(Variable(c))
+            #y = self.dis(Variable(c))
 
-            g = xp.ones_like(y.data)
-            grad_c = self.dis.backward(Variable(g))
+            #g = xp.ones_like(y.data)
+            #grad_c = self.dis.backward(Variable(g))
+            grad_c,_ = chainer.grad([self.dis(c)], [c],
+                                 enable_double_backprop=True)
             grad_c_l2 = F.sqrt(F.sum(grad_c**2, axis=(1, 2, 3)))
 
             loss_gp = loss_l2(grad_c_l2, 1.0)
