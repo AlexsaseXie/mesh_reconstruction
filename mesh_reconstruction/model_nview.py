@@ -97,7 +97,7 @@ class Decoder(chainer.Chain):
 
 
 class Model(chainer.Chain):
-    def __init__(self, filename_obj='./data/obj/sphere_642.obj', lambda_smoothness=0., lambda_std = 0.01, n_views=2):
+    def __init__(self, filename_obj='./data/obj/sphere_642.obj', img_size = 64,lambda_smoothness=0., lambda_std = 0.01, n_views=2):
         super(Model, self).__init__()
         self.lambda_smoothness = lambda_smoothness
         self.lambda_std = lambda_std
@@ -105,12 +105,12 @@ class Model(chainer.Chain):
         self.vertices_predicted_a = None
         self.vertices_predicted_b = None
         with self.init_scope():
-            self.encoder = ResNet18(dim_out=512)
+            self.encoder = ResNet18(img_size=img_size,dim_out=512)
             self.decoder = Decoder(filename_obj)
             self.smoothness_loss_parameters = loss_functions.smoothness_loss_parameters(self.decoder.faces)
 
             self.renderer = renderer.Renderer()
-            self.renderer.image_size = 128
+            self.renderer.image_size = img_size
             self.renderer.viewing_angle = 15.
             self.renderer.anti_aliasing = True
 

@@ -67,7 +67,7 @@ def run():
     train_iter = training.M_SerialIterator(dataset_train, args.batch_size)
 
     # setup model & optimizer
-    model = model_nview.Model(lambda_smoothness=args.lambda_smoothness,lambda_std=args.lambda_std,n_views=args.n_views)
+    model = model_nview.Model(img_size=64,lambda_smoothness=args.lambda_smoothness,lambda_std=args.lambda_std,n_views=args.n_views)
     model.to_gpu()
 
     dis = model_discriminator.Discriminator(img_size=64,img_channel=1,pos_size=3)

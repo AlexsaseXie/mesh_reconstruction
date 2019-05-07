@@ -24,7 +24,6 @@ class Updater(chainer.training.StandardUpdater):
         super(Updater, self).__init__(*args, **kwargs)
 
     def update_core(self):
-        xp = self.gen.xp
         self._iter += 1
 
         opt_d = self.get_optimizer('dis')
@@ -43,8 +42,8 @@ class Updater(chainer.training.StandardUpdater):
 
             d_real = real_images
 
-            y_fake = self.dis(Variable(d_fake))
-            y_real = self.dis(Variable(d_real))
+            y_fake = self.dis(Variable(d_fake), real_viewpoints)
+            y_real = self.dis(Variable(d_real), real_viewpoints)
 
             w1 = F.average(y_fake-y_real)
 
@@ -57,7 +56,7 @@ class Updater(chainer.training.StandardUpdater):
 
             #g = xp.ones_like(y.data)
             #grad_c = self.dis.backward(Variable(g))
-            grad_c,_ = chainer.grad([self.dis(c)], [c],
+            grad_c,_ = chainer.grad([self.dis(c, real_viewpoints)], [c],
                                  enable_double_backprop=True)
             grad_c_l2 = F.sqrt(F.sum(grad_c**2, axis=(1, 2, 3)))
 
@@ -80,7 +79,7 @@ class Updater(chainer.training.StandardUpdater):
             d_fake, _, _, _ = (
                     self.gen.predict(images[:, i, :, :, :], real_viewpoints))
 
-            y_fake = self.dis(d_fake)
+            y_fake = self.dis(d_fake, real_viewpoints)
             loss_gen -= F.average(y_fake)
 
         chainer.report({'loss_ad': loss_gen}, self.gen)
