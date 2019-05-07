@@ -118,7 +118,12 @@ def run():
         trigger=(args.log_interval, 'iteration'))
     trainer.extend(
         functools.partial(
-            training.lr_shift, optimizer=optimizer, iterations=[args.num_iterations * args.lr_reduce_point]),
+            training.lr_shift, optimizer=opt_gen, iterations=[args.num_iterations * args.lr_reduce_point]),
+        name='lr_shift',
+        trigger=(1, 'iteration'))
+    trainer.extend(
+        functools.partial(
+            training.lr_shift, optimizer=opt_dis, iterations=[args.num_iterations * args.lr_reduce_point]),
         name='lr_shift',
         trigger=(1, 'iteration'))
 
