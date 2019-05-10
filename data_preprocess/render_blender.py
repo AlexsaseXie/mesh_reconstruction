@@ -91,6 +91,7 @@ bpy.data.objects['Cube'].select = True
 bpy.ops.object.delete()
 
 bpy.ops.import_scene.obj(filepath=args.obj)
+'''
 for object in bpy.context.scene.objects:
     if object.name in ['Camera', 'Lamp']:
         continue
@@ -106,7 +107,7 @@ for object in bpy.context.scene.objects:
         bpy.ops.object.modifier_add(type='EDGE_SPLIT')
         bpy.context.object.modifiers["EdgeSplit"].split_angle = 1.32645
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="EdgeSplit")
-
+'''
 #normalize
 from mathutils import Vector, Matrix
 

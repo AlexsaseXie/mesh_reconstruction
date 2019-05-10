@@ -191,8 +191,8 @@ class Model(chainer.Chain):
     def evaluate_iou(self, images, voxels):
         vertices, faces = self.decoder(self.encoder(images))
         faces = neural_renderer.vertices_to_faces(vertices, faces).data
-        faces = faces * 1. * (32. - 1) / 32. + 0.5  # normalization
-        voxels_predicted = voxelization.voxelize(faces, 32, False)
+        #faces = faces * 1. * (32. - 1) / 32. + 0.5  # normalization
+        voxels_predicted = voxelization.voxelize(faces, 32, True)
         #voxels_predicted = voxels_predicted.transpose((0, 2, 1, 3))[:, :, :, ::-1]
         iou = (voxels * voxels_predicted).sum((1, 2, 3)) / (0 < (voxels + voxels_predicted)).sum((1, 2, 3))
         return iou
