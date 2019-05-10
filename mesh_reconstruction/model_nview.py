@@ -125,16 +125,19 @@ class Model(chainer.Chain):
         
         images = self.xp.reshape(images, (batch_size * images.shape[1], images.shape[2], images.shape[3], images.shape[4]))
         # viewpoints_t : viewpoints shift on the second axis
-        if self.n_views > 1:
-            viewpoints_t = self.xp.concatenate((viewpoints[:,1:,:], self.xp.expand_dims(viewpoints[:,0,:], axis=1)),axis = 1)
-            viewpoints_t = self.xp.reshape(viewpoints_t, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
-            viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
-            viewpoints = self.xp.concatenate((viewpoints, viewpoints_t), axis=0)
-        else :
-            viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
-        self.renderer.eye = viewpoints
+        #if self.n_views > 1:
+        #    viewpoints_t = self.xp.concatenate((viewpoints[:,1:,:], self.xp.expand_dims(viewpoints[:,0,:], axis=1)),axis = 1)
+        #    viewpoints_t = self.xp.reshape(viewpoints_t, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
+        #    viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
+        #    viewpoints = self.xp.concatenate((viewpoints, viewpoints_t), axis=0)
+        #else :
+        #    viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
+        #self.renderer.eye = viewpoints
         
         vertices, faces = self.decoder(self.encoder(images))  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...]
+        vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
+        faces = cf.reshape(faces, (batch_size, self.n_views, faces.shape[1], faces.shape[2]))
+        '''
         if self.n_views > 1:
             vertices_c = cf.concat((vertices, vertices), axis=0)  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...] * 2
             faces_c = cf.concat((faces, faces), axis=0).data  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...] * 2
@@ -174,7 +177,29 @@ class Model(chainer.Chain):
 
             vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
             return silhouettes_a_a, None, vertices, distances
+        '''
+        return vertices, faces
+
+    def predict_and_render_current(self, images, viewpoints):
+        # image : [batch_size, n_views, 4, 128, 128]
+        # viewpoints : [batch_size, n_views, 3]
+        batch_size = images.shape[0]
         
+        images = self.xp.reshape(images, (batch_size * images.shape[1], images.shape[2], images.shape[3], images.shape[4]))
+        
+        viewpoints = self.xp.reshape(viewpoints, (batch_size * viewpoints.shape[1], viewpoints.shape[2]))
+        
+        self.renderer.eye = viewpoints
+        
+        vertices, faces = self.decoder(self.encoder(images))  # [1_view1, 1_view2, ... 1_viewn , 2_view1 ...]
+        
+        silhouettes = self.renderer.render_silhouettes(vertices, faces)
+        silhouettes_a_a = silhouettes[0: batch_size * self.n_views]
+        silhouettes_a_a = cf.reshape(silhouettes_a_a,(batch_size, self.n_views, silhouettes_a_a.shape[1], silhouettes_a_a.shape[2]))
+            
+        vertices = cf.reshape(vertices, (batch_size, self.n_views, vertices.shape[1], vertices.shape[2]))
+        faces = cf.reshape(faces, (batch_size, self.n_views, faces.shape[1], faces.shape[2]))
+        return silhouettes_a_a, vertices, faces        
 
     def reconstruct(self, images):
         vertices, faces = self.decoder(self.encoder(images))
@@ -197,7 +222,21 @@ class Model(chainer.Chain):
         iou = (voxels * voxels_predicted).sum((1, 2, 3)) / (0 < (voxels + voxels_predicted)).sum((1, 2, 3))
         return iou
 
-    def gen_loss(self, images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances):
+    def gen_loss(self, images, viewpoints, vertices, faces):
+        batch_size = images.shape[0]
+        loss_silhouettes = 0
+
+        for model_id in range(self.n_views):
+            for view_id in range(self.n_views):
+                self.renderer.eye = viewpoints[:,view_id,:]
+                silhouettes = self.renderer.render_silhouettes(vertices[:,model_id,:,:], faces[:,model_id,:,:])
+                
+                loss_silhouettes += loss_functions.iou_loss(images[:,view_id,3,:,:], silhouettes[:,:,:])
+
+        loss_silhouettes = loss_silhouettes / (self.n_views * self.n_views)
+
+        
+        '''
         if self.n_views == 1 :
             loss_silhouettes = (loss_functions.iou_loss(images[:, 0, 3, :, :], silhouettes_a_a[:,0,:,:]))
         else:
@@ -207,12 +246,8 @@ class Model(chainer.Chain):
             for i in range(self.n_views):
                 loss_silhouettes += (loss_functions.iou_loss(images[:, (i + 1) % self.n_views, 3, :, :], silhouettes_a_nexta[:,i,:,:]))
             loss_silhouettes = loss_silhouettes / (2 * self.n_views)
-        # compute loss
-        #loss_silhouettes = (
-        #                       loss_functions.iou_loss(images_a[:, 3, :, :], silhouettes_a_a) +
-        #                       loss_functions.iou_loss(images_a[:, 3, :, :], silhouettes_b_a) +
-        #                       loss_functions.iou_loss(images_b[:, 3, :, :], silhouettes_a_b) +
-        #                       loss_functions.iou_loss(images_b[:, 3, :, :], silhouettes_b_b)) / 4
+        '''
+
         if self.lambda_smoothness != 0:
             loss_smoothness = 0
             for i in range(self.n_views):
@@ -225,6 +260,15 @@ class Model(chainer.Chain):
             loss_smoothness = 0
 
         if self.lambda_std != 0:
+            faces = neural_renderer.vertices_to_faces(vertices, faces)
+            # faces : (batch_size * n_views) * n_faces * 3 * 3
+            f01 = cf.sqrt(cf.sum(cf.square(faces[:,:,0,:] - faces[:,:,1,:]), axis=2)) # (batch_size * n_views) * n_faces
+            f12 = cf.sqrt(cf.sum(cf.square(faces[:,:,1,:] - faces[:,:,2,:]), axis=2))
+            f20 = cf.sqrt(cf.sum(cf.square(faces[:,:,2,:] - faces[:,:,0,:]), axis=2))
+
+            distances = cf.stack((f01,f12,f20), axis=2)
+            distances = cf.reshape(distances, (batch_size, self.n_views, distances.shape[1], distances.shape[2]))
+
             loss_std = 0
             for i in range(self.n_views):
                 loss_std += loss_functions.variance_loss(distances[:,i,:])
@@ -247,9 +291,10 @@ class Model(chainer.Chain):
 
     def __call__(self, images, viewpoints):
         # predict vertices and silhouettes
-        silhouettes_a_a, silhouettes_a_nexta, vertices, distances = (
-            self.predict(images, viewpoints))
-
-        loss = self.gen_loss(images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances)
+        #silhouettes_a_a, silhouettes_a_nexta, vertices, distances = (self.predict(images, viewpoints))
+        #loss = self.gen_loss(images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances)
+        
+        vertices, faces = self.predict(images, viewpoints)
+        loss = self.gen_loss(images, viewpoints, vertices, faces)
 
         return loss

@@ -34,7 +34,7 @@ class Updater(chainer.training.StandardUpdater):
         self.gen.n_views = 1
         
         for i in range(self._dis_iter):
-            d_fake, _, _, _ = self.gen.predict(images[:,(i % self._n_views):(i % self._n_views + 1), :, :, :], f_real_viewpoints)
+            d_fake, _, _, _ = self.gen.predict_and_render_current(images[:,(i % self._n_views):(i % self._n_views + 1), :, :, :], f_real_viewpoints)
 
             d_real = real_images[:,3:4,:,:]
 
@@ -80,7 +80,7 @@ class Updater(chainer.training.StandardUpdater):
         # update gan
         for i in range(self._n_views):
             d_fake, _, _, _ = (
-                    self.gen.predict(images[:, i: i+1, :, :, :], f_real_viewpoints))
+                    self.gen.predict_and_render_current(images[:, i: i+1, :, :, :], f_real_viewpoints))
 
             y_fake = self.dis(d_fake, real_viewpoints)
             loss_gen -= F.average(y_fake)
@@ -95,10 +95,11 @@ class Updater(chainer.training.StandardUpdater):
         # update supervised
         self.gen.n_views = self._n_views
 
-        silhouettes_a_a, silhouettes_a_nexta, vertices, distances = (
-            self.gen.predict(images, viewpoints))
+        #silhouettes_a_a, silhouettes_a_nexta, vertices, distances = (self.gen.predict(images, viewpoints))
 
-        loss_gen = self.gen.gen_loss(images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances)
+        #loss_gen = self.gen.gen_loss(images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances)
+
+        loss_gen = self.gen(images, viewpoints)
 
         chainer.report({'loss_supervised': loss_gen}, self.gen)
 
