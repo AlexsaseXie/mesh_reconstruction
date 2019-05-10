@@ -260,6 +260,8 @@ class Model(chainer.Chain):
             loss_smoothness = 0
 
         if self.lambda_std != 0:
+            vertices = cf.reshape(vertices, (batch_size * self.n_views, vertices.shape[2], vertices.shape[3]))
+            faces = cf.reshape(faces, (batch_size * self.n_views, faces.shape[2], faces.shape[3])).data
             faces = neural_renderer.vertices_to_faces(vertices, faces)
             # faces : (batch_size * n_views) * n_faces * 3 * 3
             f01 = cf.sqrt(cf.sum(cf.square(faces[:,:,0,:] - faces[:,:,1,:]), axis=2)) # (batch_size * n_views) * n_faces
