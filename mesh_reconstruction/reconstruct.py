@@ -8,7 +8,7 @@ import neural_renderer
 import numpy as np
 import skimage.io
 
-import models
+import model_nview
 
 RANDOM_SEED = 0
 GPU = 0
@@ -57,7 +57,7 @@ def run():
     images_in = chainer.cuda.to_gpu(images_in)
 
     # setup model & optimizer
-    model = models.Model()
+    model = model_nview.Model(img_size=64)
     model.to_gpu()
     chainer.serializers.load_npz(os.path.join(directory_output, 'model.npz'), model)
 

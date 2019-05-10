@@ -7,7 +7,7 @@ import cupy as cp
 import numpy as np
 
 import datasets
-import models
+import model_nview
 import training
 
 CLASS_IDS_ALL = (
@@ -57,7 +57,7 @@ def run():
     dataset_test = datasets.ShapeNet_NView(args.dataset_directory, args.class_ids.split(','), 'test')
 
     # setup model & optimizer
-    model = models.Model()
+    model = model_nview.Model(img_size=64)
     model.to_gpu()
     chainer.serializers.load_npz(os.path.join(directory_output, 'model.npz'), model)
 
