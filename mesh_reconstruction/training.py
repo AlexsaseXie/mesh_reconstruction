@@ -82,7 +82,7 @@ def validation(trainer=None, model=None, dataset=None):
             for batch in dataset.get_all_batches_for_evaluation(100, class_id):
                 batch = my_convertor(batch)
                 iou += model.evaluate_iou(*batch).sum()
-            iou /= dataset.num_data[class_id] * 24
+            iou /= dataset.num_data[class_id] * dataset.total_views
             ious['%s/iou_%s' % (dataset.set_name, class_id)] = iou
         ious['%s/iou' % dataset.set_name] = np.mean([float(v) for v in ious.values()])
         chainer.report(ious)

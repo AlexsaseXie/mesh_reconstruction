@@ -10,7 +10,7 @@ class ShapeNet_NView(object):
     def __init__(self, directory=None, class_ids=None, set_name=None, n_views = 3, total_views=24, only_top=True):
         self.class_ids = class_ids
         self.set_name = set_name
-        self.elevation = 30
+        self.elevation = 30.964
         self.distance = 2.732
         self.n_views = n_views
         self.total_views = total_views
@@ -26,9 +26,9 @@ class ShapeNet_NView(object):
         loop.set_description('Loading dataset')
         for class_id in loop:
             images.append(np.load(
-                os.path.join(directory, '%s_%s_images.npz' % (class_id, set_name))).items()[0][1])
+                os.path.join(directory, '%s_%s_render_64_stable_top.npz' % (class_id, set_name))).items()[0][1])
             voxels.append(np.load(
-                os.path.join(directory, '%s_%s_voxels.npz' % (class_id, set_name))).items()[0][1])
+                os.path.join(directory, '%s_%s_voxel.npz' % (class_id, set_name))).items()[0][1])
             self.num_data[class_id] = images[-1].shape[0]
             self.pos[class_id] = count
             count += self.num_data[class_id]
@@ -51,7 +51,7 @@ class ShapeNet_NView(object):
         else:
             distance = np.ones(self.total_views, 'float32') * self.distance
             elevation = np.ones(self.total_views, 'float32') * self.elevation
-            azimuth = - np.arange(0, self.total_views, dtype='int32') * (360 / self.total_views)
+            azimuth = np.arange(0, self.total_views, dtype='int32') * (360 / self.total_views)
             self.viewpoints_pool = neural_renderer.get_points_from_angles(distance, elevation, azimuth)
 
         
