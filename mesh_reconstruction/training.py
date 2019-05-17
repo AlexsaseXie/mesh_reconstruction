@@ -73,7 +73,9 @@ class MyIterator(chainer.dataset.Iterator):
     next = __next__
 
 
-def validation(trainer=None, model=None, dataset=None):
+import os
+
+def validation(trainer=None, model=None, dataset=None, directory_output=None):
     # evaluate voxel IoUs on all classes
     with chainer.configuration.using_config('train', False):
         ious = {}
@@ -86,7 +88,8 @@ def validation(trainer=None, model=None, dataset=None):
             ious['%s/iou_%s' % (dataset.set_name, class_id)] = iou
         ious['%s/iou' % dataset.set_name] = np.mean([float(v) for v in ious.values()])
         chainer.report(ious)
-
+    
+    chainer.serializers.save_npz(os.path.join(directory_output, 'model.npz'), model)
 
 def lr_shift(trainer=None, optimizer=None, iterations=None, factor=0.1):
     if trainer.updater.iteration in iterations:
