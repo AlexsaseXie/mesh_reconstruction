@@ -117,7 +117,7 @@ def run():
         priority=chainer.training.PRIORITY_WRITER,
         trigger=(args.log_interval, 'iteration'))
     trainer.extend(
-        functools.partial(chainer.serializers.save_npz, os.path.join(directory, 'dis.npz'), dis),
+        functools.partial(chainer.serializers.save_npz, os.path.join(directory_output, 'dis.npz'), dis),
         name='save_dis',
         trigger=(args.log_interval, 'iteration'))
 
