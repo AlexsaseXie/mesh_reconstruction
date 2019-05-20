@@ -46,26 +46,21 @@ class Updater(chainer.training.StandardUpdater):
             loss_dis = w1
 
             # gp
-            xp = chainer.cuda.get_array_module(d_real)
-            eta = xp.random.uniform(0., 1., (self._batch_size, 1, 1, 1))
-            c = (d_real * eta + (1.0 - eta) * d_fake)
-            #y = self.dis(Variable(c))
-
-            #g = xp.ones_like(y.data)
-            #grad_c = self.dis.backward(Variable(g))
+            if self._lambda_gp != 0:
+                xp = chainer.cuda.get_array_module(d_real)
+                eta = xp.random.uniform(0., 1., (self._batch_size, 1, 1, 1))
+                c = (d_real * eta + (1.0 - eta) * d_fake)
             
-            v_real_viewpoints = Variable(real_viewpoints)
-            mid_c = self.dis(c, v_real_viewpoints)
-            grad_c, _ = chainer.grad([mid_c], [c, v_real_viewpoints],
+                v_real_viewpoints = Variable(real_viewpoints)
+                mid_c = self.dis(c, v_real_viewpoints)
+                grad_c, _ = chainer.grad([mid_c], [c, v_real_viewpoints],
                                  enable_double_backprop=True, loss_scale=0.2)
-            #print(grad_c.shape, grad_c.data[0,0,0,0])
-            grad_c = F.sqrt(F.batch_l2_norm_squared(grad_c))
+                #print(grad_c.shape, grad_c.data[0,0,0,0])
+                grad_c = F.sqrt(F.batch_l2_norm_squared(grad_c))
 
-            loss_gp = F.mean_squared_error(grad_c, xp.ones_like(grad_c.data))
-            #print loss_dis
-            #print self._lambda_gp * loss_gp
+                loss_gp = F.mean_squared_error(grad_c, xp.ones_like(grad_c.data))
 
-            loss_dis += self._lambda_gp * loss_gp
+                loss_dis += self._lambda_gp * loss_gp
 
             # update
             self.dis.cleargrads()

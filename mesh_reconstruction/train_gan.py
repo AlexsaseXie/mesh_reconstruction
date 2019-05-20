@@ -112,10 +112,15 @@ def run():
         ['iteration', 'main/loss_silhouettes', 'main/loss_smoothness', 'val/iou', 'elapsed_time']))
     trainer.extend(chainer.training.extensions.ProgressBar(update_interval=10))
     trainer.extend(
-        functools.partial(training.validation, model=model, dataset=dataset_val),
+        functools.partial(training.validation, model=model, dataset=dataset_val, directory_output=directory_output),
         name='validation',
         priority=chainer.training.PRIORITY_WRITER,
         trigger=(args.log_interval, 'iteration'))
+    trainer.extend(
+        functools.partial(chainer.serializers.save_npz, os.path.join(directory, 'dis.npz'), dis),
+        name='save_dis',
+        trigger=(args.log_interval, 'iteration'))
+
     trainer.extend(
         functools.partial(
             training.lr_shift, optimizer=opt_gen, iterations=[args.num_iterations * args.lr_reduce_point]),
@@ -132,6 +137,7 @@ def run():
 
     # save model
     chainer.serializers.save_npz(os.path.join(directory_output, 'model.npz'), model)
+    chainer.serializers.save_npz(os.path.join(directory_output, 'dis.npz'), dis)
 
 
 if __name__ == '__main__':
