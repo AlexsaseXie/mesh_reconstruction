@@ -42,7 +42,7 @@ class Updater(chainer.training.StandardUpdater):
             y_real = self.dis(d_real, real_viewpoints)
 
             #w1 = F.average(y_fake-y_real)
-            w1 = F.sum(F.softplus(-y_real)) / self._batch_size + F.sum(F.softplus(y_fake)) / self._batch_size
+            w1 = F.sum(F.softplus(-y_real)) / (self._batch_size * 64) + F.sum(F.softplus(y_fake)) / ( self._batch_size * 64 )
 
             loss_dis = w1
 
@@ -80,25 +80,23 @@ class Updater(chainer.training.StandardUpdater):
 
             y_fake = self.dis(d_fake, real_viewpoints)
             #loss_gen -= F.average(y_fake)
-            loss_gen += F.sum(F.softplus(-y_fake)) / self._batch_size
+            loss_gen += F.sum(F.softplus(-y_fake)) / (self._batch_size * 64)
 
         chainer.report({'loss_ad': loss_gen}, self.gen)
 
-        self.gen.cleargrads()
-        loss_gen.backward()
-        opt_g.update()
+        #self.gen.cleargrads()
+        #loss_gen.backward()
+        #opt_g.update()
 
 
         # update supervised
         self.gen.n_views = self._n_views
 
-        #silhouettes_a_a, silhouettes_a_nexta, vertices, distances = (self.gen.predict(images, viewpoints))
+        loss_supervised = self.gen(images, viewpoints)
 
-        #loss_gen = self.gen.gen_loss(images, viewpoints, silhouettes_a_a, silhouettes_a_nexta, vertices, distances)
+        chainer.report({'loss_supervised': loss_supervised}, self.gen)
 
-        loss_gen = self.gen(images, viewpoints)
-
-        chainer.report({'loss_supervised': loss_gen}, self.gen)
+        loss_gen += loss_supervised
 
         self.gen.cleargrads()
         loss_gen.backward()
