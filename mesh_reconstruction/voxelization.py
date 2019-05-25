@@ -163,11 +163,11 @@ def _voxelize_sub3(voxels):
 def voxelize(faces, size, normalize=False):
     faces = cp.copy(faces)
     if normalize:
-        faces -= faces.min((0, 1, 2), keepdims=True)
-        faces /= faces.max()
+        faces -= faces.min((1, 2))[:, None, None, :]
+        faces /= faces.max((1, 2, 3))[:, None, None, None]
         faces *= 1. * (size - 1) / size
-        margin = 1 - faces.max((0, 1, 2))
-        faces += margin[None, None, None, :] / 2
+        margin = 1 - faces.max((1, 2))
+        faces += margin[:, None, None, :] / 2
         faces *= size
     else:
         faces *= size

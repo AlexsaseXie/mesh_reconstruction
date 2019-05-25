@@ -41,7 +41,8 @@ class Updater(chainer.training.StandardUpdater):
             y_fake = self.dis(d_fake, real_viewpoints)
             y_real = self.dis(d_real, real_viewpoints)
 
-            w1 = F.average(y_fake-y_real)
+            #w1 = F.average(y_fake-y_real)
+            w1 = F.sum(F.softplus(-y_real)) / self._batch_size + F.sum(F.softplus(y_fake)) / self._batch_size
 
             loss_dis = w1
 
@@ -78,7 +79,8 @@ class Updater(chainer.training.StandardUpdater):
                     self.gen.predict_and_render_current(images[:, i: i+1, :, :, :], f_real_viewpoints))
 
             y_fake = self.dis(d_fake, real_viewpoints)
-            loss_gen -= F.average(y_fake)
+            #loss_gen -= F.average(y_fake)
+            loss_gen += F.sum(F.softplus(-y_fake)) / self._batch_size
 
         chainer.report({'loss_ad': loss_gen}, self.gen)
 

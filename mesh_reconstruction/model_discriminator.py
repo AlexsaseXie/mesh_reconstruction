@@ -12,11 +12,12 @@ class Discriminator(chainer.Chain):
             self.bn1 = cl.BatchNormalization(32)
             self.conv2 = cl.Convolution2D(in_channels=48, out_channels=64, ksize=5,pad=2,stride=2)
             self.bn2 = cl.BatchNormalization(64)
-            self.conv3 = cl.Convolution2D(in_channels=64, out_channels=128, ksize=5, pad=2, stride=2)
-            self.bn3 = cl.BatchNormalization(128)
-            self.conv4 = cl.Convolution2D(in_channels=128, out_channels=128, ksize=5, pad=2, stride=2)
-            self.bn4 = cl.BatchNormalization(128)
-            self.conv5 = cl.Convolution2D(in_channels=128, out_channels=1, ksize=5, pad=2, stride=2)
+            #self.conv3 = cl.Convolution2D(in_channels=64, out_channels=128, ksize=5, pad=2, stride=2)
+            #self.bn3 = cl.BatchNormalization(128)
+            #self.conv4 = cl.Convolution2D(in_channels=128, out_channels=128, ksize=5, pad=2, stride=2)
+            #self.bn4 = cl.BatchNormalization(128)
+            #self.conv5 = cl.Convolution2D(in_channels=128, out_channels=1, ksize=5, pad=2, stride=2)
+            self.conv5 = cl.Convolution2D(in_channels=64, out_channels=1, ksize=5, pad=2, stride=2)
             self.bn5 = cl.BatchNormalization(1)
 
             self.linear1 = cl.Linear(in_size = pos_size, out_size=16)
@@ -29,7 +30,7 @@ class Discriminator(chainer.Chain):
 
         h = cf.concat((img_h, h), axis=1)
         h = cf.leaky_relu(self.bn2(self.conv2(h)))
-        h = cf.leaky_relu(self.bn3(self.conv3(h)))
-        h = cf.leaky_relu(self.bn4(self.conv4(h)))
+        #h = cf.leaky_relu(self.bn3(self.conv3(h)))
+        #h = cf.leaky_relu(self.bn4(self.conv4(h)))
         h = self.bn5(self.conv5(h))
         return h
