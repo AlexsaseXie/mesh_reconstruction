@@ -62,7 +62,8 @@ def run():
     chainer.serializers.load_npz(os.path.join(directory_output, 'model.npz'), model)
 
     # reconstruct .obj
-    vertices, faces = model.reconstruct(images_in)
+    with chainer.configuration.using_config('train', False):    
+        vertices, faces = model.reconstruct(images_in)
     neural_renderer.save_obj(args.output_obj, vertices.data.get()[0], faces.get()[0])
 
     # render reconstructed shape
