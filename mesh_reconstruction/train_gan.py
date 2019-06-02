@@ -81,7 +81,7 @@ def run():
     opt_gen = neural_renderer.Adam(args.learning_rate)
     opt_gen.setup(model)
 
-    opt_dis = neural_renderer.Adam(1e-6)
+    opt_dis = neural_renderer.Adam(5e-6)
     opt_dis.setup(dis)
 
     # setup trainer

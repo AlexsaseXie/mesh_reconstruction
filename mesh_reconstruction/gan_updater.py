@@ -84,6 +84,7 @@ class Updater(chainer.training.StandardUpdater):
             #loss_gen += F.sum(F.softplus(-y_fake)) / (self._batch_size * 64)
             loss_gen += F.average(F.log(1 - F.clip(F.sigmoid(y_fake), 1e-5, 1.0)))             
 
+        loss_gen = loss_gen / self._n_views
         chainer.report({'loss_ad': loss_gen}, self.gen)
 
         #self.gen.cleargrads()
@@ -98,7 +99,7 @@ class Updater(chainer.training.StandardUpdater):
 
         chainer.report({'loss_supervised': loss_supervised}, self.gen)
 
-        loss_gen += loss_supervised
+        loss_gen = 0.5 * loss_gen + loss_supervised
 
         self.gen.cleargrads()
         loss_gen.backward()
