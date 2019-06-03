@@ -12,6 +12,7 @@ do
     for id in $id_arr
     do
         echo $c $id
-        python mesh_reconstruction/reconstruct.py -d ./data/models -eid singleclass_${c} -i ./data/test_img/${c}_${id}_in.png -oi ./data/test_img/${c}_${id}_out.png -oo ./data/test_img/${c}_${id}_out.obj
+        mkdir ./data/test_img/${c}_${id}_out
+        python mesh_reconstruction/reconstruct.py -d ./data/models -eid singleclass_${c}_3view -i ./data/test_img/${c}_${id}_in.png -oi ./data/test_img/${c}_${id}_out/${c}_${id}_out.png -oo ./data/test_img/${c}_${id}_out/${c}_${id}_out.obj
     done
 done

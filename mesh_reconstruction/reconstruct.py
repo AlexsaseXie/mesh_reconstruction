@@ -76,6 +76,10 @@ def run():
     image_out = tile_images(images_out.data.get())
     image_out = (image_out * 255).clip(0, 255).astype('uint8')
     skimage.io.imsave(args.output_image, image_out)
+    for i in range(4):
+        for j in range(4):
+            img_tmp = image_out[i*64:(i+1)*64,j*64:(j+1)*64,:]
+            skimage.io.imsave(args.output_image + '%d%d.png' % (i,j), img_tmp)
 
 
 if __name__ == '__main__':
